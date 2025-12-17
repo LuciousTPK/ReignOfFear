@@ -1,0 +1,3 @@
+displayName = Reign of Fear
+author = LuciousTPK
+version = 0.1
