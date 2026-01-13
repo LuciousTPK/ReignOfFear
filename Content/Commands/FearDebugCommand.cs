@@ -1,0 +1,153 @@
+﻿using Microsoft.Xna.Framework;
+using ReignOfFear.Content.Systems.FearSystem;
+using System;
+using Terraria.ModLoader;
+
+namespace ReignOfFear.Content.Commands
+{
+    public class FearDebugCommand : ModCommand
+    {
+        public override string Command => "fear";
+
+        public override CommandType Type => CommandType.Chat;
+
+        public override void Action(CommandCaller caller, string input, string[] args)
+        {
+            var player = caller.Player.GetModPlayer<FearSystemPlayer>();
+
+            if (args.Length > 0 && args[0] == "show" && args[1] == "phobias")
+            {
+                foreach (PhobiaID phobiaName in Enum.GetValues<PhobiaID>())
+                {
+                    if (player.HasPhobia(phobiaName))
+                    {
+                        caller.Reply(phobiaName.ToString(), Color.Yellow);
+                    }
+                }
+
+                return;
+            }
+
+            else if (args.Length > 1 && Enum.TryParse<PhobiaID>(args[0], true, out PhobiaID phobia))
+            {
+                switch (args[1])
+                {
+                    case "add":
+                    {
+                        if (args.Length > 3 && args[2] == "fear" && float.TryParse(args[3], out float addValue))
+                        {
+                            player.AddFearPoints(phobia, addValue);
+                            caller.Reply("Adding " + addValue + " fear to " + phobia.ToString() + "!", Color.Yellow);
+                            caller.Reply(phobia.ToString() + "'s Fear points: " + player.GetPhobiaState(phobia).fearPoints.ToString() + "/" + player.GetPhobiaState(phobia).maxFear.ToString(), Color.Yellow);
+                            break;
+                        }
+
+                        else if (args.Length > 2 && args[2] == "phobia")
+                        {
+                            player.GetPhobiaState(phobia).hasPhobia = true;
+                            caller.Reply("Giving " + phobia.ToString() + " to player!", Color.Yellow);
+                            break;
+                        }
+
+                        else
+                        {
+                            caller.Reply("Invalid 'Add' command!", Color.Red);
+                            break;
+                        }
+                    }
+
+                    case "remove":
+                    {
+                        if (args.Length > 3 && args[2] == "fear" && float.TryParse(args[3], out float removeValue))
+                        {
+                            player.RemoveFearPoints(phobia, removeValue);
+                            caller.Reply("Removing " + removeValue + " fear from " + phobia.ToString() + "!", Color.Yellow);
+                            caller.Reply(phobia.ToString() + "'s Fear points: " + player.GetPhobiaState(phobia).fearPoints.ToString() + "/" + player.GetPhobiaState(phobia).maxFear.ToString(), Color.Yellow);
+                            break;
+                        }
+
+                        else if (args.Length > 2 && args[2] == "phobia")
+                        {
+                            player.GetPhobiaState(phobia).hasPhobia = false;
+                            caller.Reply("Removing " + phobia.ToString() + " from player!", Color.Yellow);
+                            break;
+                        }
+
+                        else
+                        {
+                            caller.Reply("Invalid 'Remove' command!", Color.Red);
+                            break;
+                        }
+                    }
+
+                    case "clear":
+                    {
+                        if (args.Length > 2 && args[2] == "fear")
+                        {
+                            player.GetPhobiaState(phobia).fearPoints = 0;
+                            caller.Reply("Removing all fear from " + phobia.ToString() + "!", Color.Yellow);
+                            break;
+                        }
+
+                        else
+                        {
+                            caller.Reply("Invalid 'Clear' command!", Color.Red);
+                            break;
+                        }
+                    }
+
+                    case "max":
+                    {
+                        if (args.Length > 2 && args[2] == "fear")
+                        {
+                            player.GetPhobiaState(phobia).fearPoints = player.GetPhobiaState(phobia).maxFear;
+                            caller.Reply("Maxing out fear for " + phobia.ToString() + "!", Color.Yellow);
+                            break;
+                        }
+
+                        else
+                        {
+                            caller.Reply("Invalid 'Max' command!", Color.Red);
+                            break;
+                        }
+                    }
+
+                    case "show":
+                    {
+                        if (args.Length > 2 && args[2] == "fear")
+                        {
+                            caller.Reply(phobia.ToString() + "'s Fear points: " + player.GetPhobiaState(phobia).fearPoints.ToString() + "/" + player.GetPhobiaState(phobia).maxFear.ToString(), Color.Yellow);
+                            break;
+                        }
+
+                        else
+                        {
+                            caller.Reply("Invalid 'show' command!", Color.Red);
+                            break;
+                        }
+                    }
+
+                    default:
+                    {
+                        caller.Reply("Invalid command!", Color.Red);
+                        break;
+                    }
+                }
+
+                return;
+            }
+
+            else if (!Enum.TryParse<PhobiaID>(args[0], true, out PhobiaID phobiaID))
+            {
+                caller.Reply("Invalid phobia name!", Color.Red);
+                return;
+            }
+
+            else
+            {
+                caller.Reply("Invalid command!", Color.Red);
+                return;
+            }
+        }
+    }
+}

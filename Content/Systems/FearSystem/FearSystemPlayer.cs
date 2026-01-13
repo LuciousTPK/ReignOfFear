@@ -27,5 +27,25 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 //That we will have to play pretend and just say that logic is here
             }
         }
+
+        public void AddFearPoints(PhobiaID phobia, float points)
+        {
+            playerPhobiaData[phobia].fearPoints += points;
+        }
+
+        public void RemoveFearPoints(PhobiaID phobia, float points)
+        {
+            playerPhobiaData[phobia].fearPoints -= points ;
+        }
+
+        public PlayerPhobiaState GetPhobiaState(PhobiaID phobia)
+        {
+            return playerPhobiaData[phobia];
+        }
+
+        public bool HasPhobia(PhobiaID phobia)
+        {
+            return playerPhobiaData[phobia].hasPhobia;
+        }
     }
 }
