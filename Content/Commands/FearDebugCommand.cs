@@ -34,16 +34,43 @@ namespace ReignOfFear.Content.Commands
                 {
                     case "add":
                     {
-                        if (args.Length > 3 && args[2] == "fear" && float.TryParse(args[3], out float addValue))
+                        if (args.Length > 3 && args[2] == "fear" && float.TryParse(args[3], out float addFearValue))
                         {
-                            player.AddFearPoints(phobia, addValue);
-                            caller.Reply("Adding " + addValue + " fear to " + phobia.ToString() + "!", Color.Yellow);
-                            caller.Reply(phobia.ToString() + "'s Fear points: " + player.GetPhobiaState(phobia).fearPoints.ToString() + "/" + player.GetPhobiaState(phobia).maxFear.ToString(), Color.Yellow);
+                            if (player.GetPhobiaState(phobia).hasPhobia)
+                            {
+                                    player.AddFearPoints(phobia, (int)Math.Floor(addFearValue));
+                                    PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
+                                    caller.Reply("Adding " + addFearValue + " fear to " + phobia.ToString() + "!", Color.Yellow);
+                                    caller.Reply(phobia.ToString() + "'s Fear points: " + player.GetPhobiaState(phobia).fearPoints.ToString() + "/" + definition.postAcquisitionMax, Color.Yellow);
+                                    caller.Reply(phobia.ToString() + "'s Courage points: " + player.GetPhobiaState(phobia).couragePoints.ToString() + "/" + definition.courageMax, Color.Yellow);
+                                    break;
+                            }
+
+                            else
+                            {
+                                player.AddFearPoints(phobia, (int)Math.Floor(addFearValue));
+                                PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
+                                caller.Reply("Adding " + addFearValue + " fear to " + phobia.ToString() + "!", Color.Yellow);
+                                caller.Reply(phobia.ToString() + "'s Fear points: " + player.GetPhobiaState(phobia).fearPoints.ToString() + "/" + definition.preAcquisitionMax, Color.Yellow);
+                                caller.Reply(phobia.ToString() + "'s Courage points: " + player.GetPhobiaState(phobia).couragePoints.ToString() + "/" + definition.courageMax, Color.Yellow);
+                                break;
+                            }
+                            
+                        }
+
+                        else if (args.Length > 3 && args[2] == "courage" && float.TryParse(args[3], out float addCourageValue))
+                        {
+                            player.AddCouragePoints(phobia, (int)Math.Floor(addCourageValue));
+                            PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
+                            caller.Reply("Adding " + addCourageValue + " courage to " + phobia.ToString() + "!", Color.Yellow);
+                            caller.Reply(phobia.ToString() + "'s Fear points: " + player.GetPhobiaState(phobia).fearPoints.ToString() + "/" + definition.postAcquisitionMax, Color.Yellow);
+                            caller.Reply(phobia.ToString() + "'s Courage points: " + player.GetPhobiaState(phobia).couragePoints.ToString() + "/" + definition.courageMax, Color.Yellow);
                             break;
                         }
 
                         else if (args.Length > 2 && args[2] == "phobia")
                         {
+                            player.GetPhobiaState(phobia).fearPoints = 0;
                             player.GetPhobiaState(phobia).hasPhobia = true;
                             caller.Reply("Giving " + phobia.ToString() + " to player!", Color.Yellow);
                             break;
@@ -58,16 +85,41 @@ namespace ReignOfFear.Content.Commands
 
                     case "remove":
                     {
-                        if (args.Length > 3 && args[2] == "fear" && float.TryParse(args[3], out float removeValue))
+                        if (args.Length > 3 && args[2] == "fear" && float.TryParse(args[3], out float removeFearValue))
                         {
-                            player.RemoveFearPoints(phobia, removeValue);
-                            caller.Reply("Removing " + removeValue + " fear from " + phobia.ToString() + "!", Color.Yellow);
-                            caller.Reply(phobia.ToString() + "'s Fear points: " + player.GetPhobiaState(phobia).fearPoints.ToString() + "/" + player.GetPhobiaState(phobia).maxFear.ToString(), Color.Yellow);
+                            if (player.GetPhobiaState(phobia).hasPhobia)
+                            {
+                                player.RemoveFearPoints(phobia, (int)Math.Floor(removeFearValue));
+                                PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
+                                caller.Reply("Removing " + removeFearValue + " fear from " + phobia.ToString() + "!", Color.Yellow);
+                                caller.Reply(phobia.ToString() + "'s Fear points: " + player.GetPhobiaState(phobia).fearPoints.ToString() + "/" + definition.postAcquisitionMax, Color.Yellow);
+                                break;
+                            }
+
+                            else
+                            {
+                                player.RemoveFearPoints(phobia, (int)Math.Floor(removeFearValue));
+                                PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
+                                caller.Reply("Removing " + removeFearValue + " fear from " + phobia.ToString() + "!", Color.Yellow);
+                                caller.Reply(phobia.ToString() + "'s Fear points: " + player.GetPhobiaState(phobia).fearPoints.ToString() + "/" + definition.preAcquisitionMax, Color.Yellow);
+                                break;
+                            }
+                        }
+
+                        else if (args.Length > 3 && args[2] == "courage" && float.TryParse(args[3], out float removeCourageValue))
+                        {
+                            player.RemoveCouragePoints(phobia, (int)Math.Floor(removeCourageValue));
+                            PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
+                            caller.Reply("Removing " + removeCourageValue + " courage from " + phobia.ToString() + "!", Color.Yellow);
+                            caller.Reply(phobia.ToString() + "'s Fear points: " + player.GetPhobiaState(phobia).fearPoints.ToString() + "/" + definition.postAcquisitionMax, Color.Yellow);
+                            caller.Reply(phobia.ToString() + "'s Courage points: " + player.GetPhobiaState(phobia).couragePoints.ToString() + "/" + definition.courageMax, Color.Yellow);
                             break;
                         }
 
                         else if (args.Length > 2 && args[2] == "phobia")
                         {
+                            player.GetPhobiaState(phobia).fearPoints = 0;
+                            player.GetPhobiaState(phobia).couragePoints = 0;
                             player.GetPhobiaState(phobia).hasPhobia = false;
                             caller.Reply("Removing " + phobia.ToString() + " from player!", Color.Yellow);
                             break;
@@ -85,7 +137,10 @@ namespace ReignOfFear.Content.Commands
                         if (args.Length > 2 && args[2] == "fear")
                         {
                             player.GetPhobiaState(phobia).fearPoints = 0;
+                            PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
                             caller.Reply("Removing all fear from " + phobia.ToString() + "!", Color.Yellow);
+                            caller.Reply(phobia.ToString() + "'s Fear points: " + player.GetPhobiaState(phobia).fearPoints.ToString() + "/" + definition.postAcquisitionMax, Color.Yellow);
+                            caller.Reply(phobia.ToString() + "'s Courage points: " + player.GetPhobiaState(phobia).couragePoints.ToString() + "/" + definition.courageMax, Color.Yellow);
                             break;
                         }
 
@@ -100,8 +155,38 @@ namespace ReignOfFear.Content.Commands
                     {
                         if (args.Length > 2 && args[2] == "fear")
                         {
-                            player.GetPhobiaState(phobia).fearPoints = player.GetPhobiaState(phobia).maxFear;
-                            caller.Reply("Maxing out fear for " + phobia.ToString() + "!", Color.Yellow);
+                            if (player.GetPhobiaState(phobia).hasPhobia)
+                            {
+                                PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
+                                player.GetPhobiaState(phobia).fearPoints = 0;
+                                player.GetPhobiaState(phobia).couragePoints = 0;
+                                player.GetPhobiaState(phobia).hasPhobia = true;
+                                caller.Reply("Maxing out fear for " + phobia.ToString() + "!", Color.Yellow);
+                                caller.Reply(phobia.ToString() + "'s Fear points: " + player.GetPhobiaState(phobia).fearPoints.ToString() + "/" + definition.postAcquisitionMax, Color.Yellow);
+                                caller.Reply(phobia.ToString() + "'s Courage points: " + player.GetPhobiaState(phobia).couragePoints.ToString() + "/" + definition.courageMax, Color.Yellow);
+                                break;
+                            }
+
+                            else
+                            {
+                                PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
+                                player.GetPhobiaState(phobia).fearPoints = definition.preAcquisitionMax;
+                                player.GetPhobiaState(phobia).couragePoints = 0;
+                                caller.Reply("Maxing out fear for " + phobia.ToString() + "!", Color.Yellow);
+                                caller.Reply(phobia.ToString() + "'s Fear points: " + player.GetPhobiaState(phobia).fearPoints.ToString() + "/" + definition.postAcquisitionMax, Color.Yellow);
+                                caller.Reply(phobia.ToString() + "'s Courage points: " + player.GetPhobiaState(phobia).couragePoints.ToString() + "/" + definition.courageMax, Color.Yellow);
+                                break;
+                            }
+                        }
+
+                        else if (args.Length > 2 && args[2] == "courage")
+                        {
+                            PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
+                            player.GetPhobiaState(phobia).couragePoints = definition.courageMax;
+                            player.GetPhobiaState(phobia).fearPoints = 0;
+                            caller.Reply("Maxing out courage for " + phobia.ToString() + "!", Color.Yellow);
+                            caller.Reply(phobia.ToString() + "'s Fear points: " + player.GetPhobiaState(phobia).fearPoints.ToString() + "/" + definition.postAcquisitionMax, Color.Yellow);
+                            caller.Reply(phobia.ToString() + "'s Courage points: " + player.GetPhobiaState(phobia).couragePoints.ToString() + "/" + definition.courageMax, Color.Yellow);
                             break;
                         }
 
@@ -116,15 +201,33 @@ namespace ReignOfFear.Content.Commands
                     {
                         if (args.Length > 2 && args[2] == "fear")
                         {
-                            caller.Reply(phobia.ToString() + "'s Fear points: " + player.GetPhobiaState(phobia).fearPoints.ToString() + "/" + player.GetPhobiaState(phobia).maxFear.ToString(), Color.Yellow);
+                            if (player.GetPhobiaState(phobia).hasPhobia)
+                            {
+                                PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
+                                caller.Reply(phobia.ToString() + "'s Fear points: " + player.GetPhobiaState(phobia).fearPoints.ToString() + "/" + definition.postAcquisitionMax, Color.Yellow);
+                                break;
+                            }
+
+                            else
+                            {
+                                PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
+                                caller.Reply(phobia.ToString() + "'s Fear points: " + player.GetPhobiaState(phobia).fearPoints.ToString() + "/" + definition.preAcquisitionMax, Color.Yellow);
+                                break;
+                            }
+                        }
+
+                        else if (args.Length > 2 && args[2] == "courage")
+                        {
+                            PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
+                            caller.Reply(phobia.ToString() + "'s Courage points: " + player.GetPhobiaState(phobia).couragePoints.ToString() + "/" + definition.courageMax, Color.Yellow);
                             break;
                         }
 
                         else
-                        {
-                            caller.Reply("Invalid 'show' command!", Color.Red);
-                            break;
-                        }
+                            {
+                                caller.Reply("Invalid 'show' command!", Color.Red);
+                                break;
+                            }
                     }
 
                     default:
