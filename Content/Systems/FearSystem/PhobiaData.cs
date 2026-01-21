@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Terraria;
 using Terraria.ID;
 
 namespace ReignOfFear.Content.Systems.FearSystem
@@ -27,6 +28,24 @@ namespace ReignOfFear.Content.Systems.FearSystem
         public int rank2Threshold;
         public int rank3Threshold;
 
+        public int CalculateRank(int fearPoints, bool rankIncrease)
+        {
+            if (rankIncrease)
+            {
+                if (fearPoints >= postAcquisitionMax) return 4; // For burdens since there is obviously no numeric in the name
+                if (fearPoints >= rank3Threshold) return 3;
+                if (fearPoints >= rank2Threshold) return 2;
+                return 1;
+            }
+
+            else
+            {
+                if (fearPoints == 0) return 1;
+                if (fearPoints <= rank2Threshold) return 2;
+                if (fearPoints <= rank3Threshold) return 3;
+                return 4; // For burdens since there is obviously no numeric in the name
+            }
+        }
     }
     public static class PhobiaData
     {

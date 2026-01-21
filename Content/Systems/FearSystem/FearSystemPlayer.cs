@@ -57,6 +57,11 @@ namespace ReignOfFear.Content.Systems.FearSystem
         {
             PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
 
+            if (playerPhobiaData[phobia].isBurden)
+            {
+                return;
+            }
+
             if (playerPhobiaData[phobia].hasPhobia)
             {
                 if (playerPhobiaData[phobia].couragePoints == 0)
@@ -79,6 +84,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
                     else
                     {
                         points = Math.Abs(playerPhobiaData[phobia].couragePoints - points);
+                        playerPhobiaData[phobia].couragePoints = 0;
                         playerPhobiaData[phobia].fearPoints += points;
 
                         if (playerPhobiaData[phobia].fearPoints > definition.postAcquisitionMax)
@@ -93,21 +99,64 @@ namespace ReignOfFear.Content.Systems.FearSystem
             {
                 playerPhobiaData[phobia].fearPoints += points;
 
-                if (playerPhobiaData[phobia].fearPoints > definition.preAcquisitionMax)
+                if (playerPhobiaData[phobia].fearPoints >= definition.preAcquisitionMax)
                 {
                     playerPhobiaData[phobia].fearPoints = playerPhobiaData[phobia].fearPoints - definition.preAcquisitionMax;
                     playerPhobiaData[phobia].hasPhobia = true;
+
+                    if (playerPhobiaData[phobia].fearPoints > definition.postAcquisitionMax)
+                    {
+                        playerPhobiaData[phobia].fearPoints = definition.postAcquisitionMax;
+                    }
                 }
             }
+
+            int calculatedRank = definition.CalculateRank(playerPhobiaData[phobia].fearPoints, true);
         }
 
         public void RemoveFearPoints(PhobiaID phobia, int points)
         {
-            playerPhobiaData[phobia].fearPoints -= points ;
+            playerPhobiaData[phobia].fearPoints -= points;
+        }
+
+        public void SetFearPoints(PhobiaID phobia, int points)
+        {
+            if (playerPhobiaData[phobia].isBurden)
+            {
+                return;
+            }
+
+            PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
+
+            playerPhobiaData[phobia].fearPoints = points;
+            playerPhobiaData[phobia].couragePoints = 0;
+
+            if (playerPhobiaData[phobia].hasPhobia)
+            {
+                if (playerPhobiaData[phobia].fearPoints > definition.postAcquisitionMax)
+                {
+                    playerPhobiaData[phobia].fearPoints = definition.postAcquisitionMax;
+                }
+            }
+            else
+            {
+                if (playerPhobiaData[phobia].fearPoints > definition.preAcquisitionMax)
+                {
+                    playerPhobiaData[phobia].fearPoints = definition.preAcquisitionMax;
+                }
+            }
+
+            bool increasing = points > playerPhobiaData[phobia].fearPoints;
+            int calculatedRank = definition.CalculateRank(playerPhobiaData[phobia].fearPoints, increasing);
         }
 
         public void AddCouragePoints(PhobiaID phobia, int points)
         {
+            if (playerPhobiaData[phobia].isBurden)
+            {
+                return;
+            }
+
             PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
 
             if (playerPhobiaData[phobia].fearPoints == 0)
@@ -130,6 +179,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 else
                 {
                     points = Math.Abs(playerPhobiaData[phobia].fearPoints - points);
+                    playerPhobiaData[phobia].fearPoints = 0;
                     playerPhobiaData[phobia].couragePoints += points;
 
                     if (playerPhobiaData[phobia].couragePoints > definition.courageMax)
@@ -138,11 +188,33 @@ namespace ReignOfFear.Content.Systems.FearSystem
                     }
                 }
             }
+
+            int calculatedRank = definition.CalculateRank(playerPhobiaData[phobia].fearPoints, false);
         }
 
         public void RemoveCouragePoints(PhobiaID phobia, int points)
         {
             playerPhobiaData[phobia].couragePoints -= points ;
+        }
+
+        public void SetCouragePoints(PhobiaID phobia, int points)
+        {
+            if (playerPhobiaData[phobia].isBurden)
+            {
+                return;
+            }
+
+            PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
+
+            playerPhobiaData[phobia].couragePoints = points;
+            playerPhobiaData[phobia].fearPoints = 0;
+
+            if (playerPhobiaData[phobia].couragePoints > definition.courageMax)
+            {
+                playerPhobiaData[phobia].couragePoints = definition.courageMax;
+            }
+
+            int calculatedRank = definition.CalculateRank(playerPhobiaData[phobia].fearPoints, false);
         }
 
         public PlayerPhobiaState GetPhobiaState(PhobiaID phobia)
