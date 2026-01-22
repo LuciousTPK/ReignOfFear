@@ -120,6 +120,8 @@ namespace ReignOfFear.Content.Commands
                         {
                             player.GetPhobiaState(phobia).fearPoints = 0;
                             player.GetPhobiaState(phobia).couragePoints = 0;
+                            player.GetPhobiaState(phobia).currentRank = 1;
+                            player.GetPhobiaState(phobia).isBurden = false;
                             player.GetPhobiaState(phobia).hasPhobia = false;
                             caller.Reply("Removing " + phobia.ToString() + " from player!", Color.Yellow);
                             break;

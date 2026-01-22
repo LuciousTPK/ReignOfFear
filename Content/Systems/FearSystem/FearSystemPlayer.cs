@@ -53,6 +53,16 @@ namespace ReignOfFear.Content.Systems.FearSystem
             }
         }
 
+        public PlayerPhobiaState GetPhobiaState(PhobiaID phobia)
+        {
+            return playerPhobiaData[phobia];
+        }
+
+        public bool HasPhobia(PhobiaID phobia)
+        {
+            return playerPhobiaData[phobia].hasPhobia;
+        }
+
         public void AddFearPoints(PhobiaID phobia, int points)
         {
             PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
@@ -93,6 +103,9 @@ namespace ReignOfFear.Content.Systems.FearSystem
                         }
                     }
                 }
+
+                int calculatedRank = definition.CalculateRank(playerPhobiaData[phobia].fearPoints, playerPhobiaData[phobia].currentRank, true);
+                HandlePhobiaRank(phobia, calculatedRank);
             }
 
             else
@@ -108,10 +121,11 @@ namespace ReignOfFear.Content.Systems.FearSystem
                     {
                         playerPhobiaData[phobia].fearPoints = definition.postAcquisitionMax;
                     }
+
+                    int calculatedRank = definition.CalculateRank(playerPhobiaData[phobia].fearPoints, playerPhobiaData[phobia].currentRank, true);
+                    HandlePhobiaRank(phobia, calculatedRank);
                 }
             }
-
-            int calculatedRank = definition.CalculateRank(playerPhobiaData[phobia].fearPoints, true);
         }
 
         public void RemoveFearPoints(PhobiaID phobia, int points)
@@ -137,6 +151,10 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 {
                     playerPhobiaData[phobia].fearPoints = definition.postAcquisitionMax;
                 }
+
+                bool increasing = points > playerPhobiaData[phobia].fearPoints;
+                int calculatedRank = definition.CalculateRank(playerPhobiaData[phobia].fearPoints, playerPhobiaData[phobia].currentRank, increasing);
+                HandlePhobiaRank(phobia, calculatedRank);
             }
             else
             {
@@ -145,9 +163,6 @@ namespace ReignOfFear.Content.Systems.FearSystem
                     playerPhobiaData[phobia].fearPoints = definition.preAcquisitionMax;
                 }
             }
-
-            bool increasing = points > playerPhobiaData[phobia].fearPoints;
-            int calculatedRank = definition.CalculateRank(playerPhobiaData[phobia].fearPoints, increasing);
         }
 
         public void AddCouragePoints(PhobiaID phobia, int points)
@@ -189,12 +204,13 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 }
             }
 
-            int calculatedRank = definition.CalculateRank(playerPhobiaData[phobia].fearPoints, false);
+            int calculatedRank = definition.CalculateRank(playerPhobiaData[phobia].fearPoints, playerPhobiaData[phobia].currentRank, false);
+            HandlePhobiaRank(phobia, calculatedRank);
         }
 
         public void RemoveCouragePoints(PhobiaID phobia, int points)
         {
-            playerPhobiaData[phobia].couragePoints -= points ;
+            playerPhobiaData[phobia].couragePoints -= points;
         }
 
         public void SetCouragePoints(PhobiaID phobia, int points)
@@ -214,17 +230,57 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 playerPhobiaData[phobia].couragePoints = definition.courageMax;
             }
 
-            int calculatedRank = definition.CalculateRank(playerPhobiaData[phobia].fearPoints, false);
+            int calculatedRank = definition.CalculateRank(playerPhobiaData[phobia].fearPoints, playerPhobiaData[phobia].currentRank, false);
+            HandlePhobiaRank(phobia, calculatedRank);
         }
 
-        public PlayerPhobiaState GetPhobiaState(PhobiaID phobia)
+        public void HandlePhobiaRank(PhobiaID phobia, int calculatedRank)
         {
-            return playerPhobiaData[phobia];
+            if (playerPhobiaData[phobia].currentRank == calculatedRank)
+            {
+                return;
+            }
+
+            Main.NewText($"Rank change detected for {phobia}!", Color.Orange);
+            Main.NewText($"Current: Rank {playerPhobiaData[phobia].currentRank} → Calculated: Rank {calculatedRank}", Color.Yellow);
+
+            if (calculatedRank > playerPhobiaData[phobia].currentRank)
+            {
+                while (playerPhobiaData[phobia].currentRank != calculatedRank)
+                {
+                    playerPhobiaData[phobia].currentRank++;
+
+                    if (playerPhobiaData[phobia].currentRank == 4)
+                    {
+                        playerPhobiaData[phobia].isBurden = true;
+                        Main.NewText($"{phobia} has become a BURDEN!", Color.Red);
+                        // AddPhobiaDebuff(phobia, playerPhobiaData[phobia].currentRank);
+                        break;
+                    }
+
+                    Main.NewText($"{phobia} increased to Rank {playerPhobiaData[phobia].currentRank}", Color.Orange);
+                    // AddPhobiaDebuff(phobia, playerPhobiaData[phobia].currentRank);
+                }
+            }
+            else
+            {
+                while (playerPhobiaData[phobia].currentRank != calculatedRank)
+                {
+                    Main.NewText($"{phobia} decreased to Rank {playerPhobiaData[phobia].currentRank - 1}", Color.Cyan);
+                    // RemovePhobiaDebuff(phobia, playerPhobiaData[phobia].currentRank);
+                    playerPhobiaData[phobia].currentRank--;
+                }
+            }
         }
 
-        public bool HasPhobia(PhobiaID phobia)
+        private void AddPhobiaDebuff(PhobiaID phobia, int rank)
         {
-            return playerPhobiaData[phobia].hasPhobia;
+
+        }
+
+        private void RemovePhobiaDebuff(PhobiaID phobia, int rank)
+        {
+
         }
     }
 }
