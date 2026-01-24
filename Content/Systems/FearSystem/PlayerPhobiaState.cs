@@ -9,7 +9,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
         public bool hasPhobia;
         public bool isImmune;
         public bool isBurden;
-        public int currentRank;
+        public int currentRank = 1;
         public List<PhobiaDebuff> activeDebuffs = new List<PhobiaDebuff>();
     }
 }

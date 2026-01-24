@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
@@ -241,9 +242,6 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 return;
             }
 
-            Main.NewText($"Rank change detected for {phobia}!", Color.Orange);
-            Main.NewText($"Current: Rank {playerPhobiaData[phobia].currentRank} → Calculated: Rank {calculatedRank}", Color.Yellow);
-
             if (calculatedRank > playerPhobiaData[phobia].currentRank)
             {
                 while (playerPhobiaData[phobia].currentRank != calculatedRank)
@@ -253,21 +251,18 @@ namespace ReignOfFear.Content.Systems.FearSystem
                     if (playerPhobiaData[phobia].currentRank == 4)
                     {
                         playerPhobiaData[phobia].isBurden = true;
-                        Main.NewText($"{phobia} has become a BURDEN!", Color.Red);
-                        // AddPhobiaDebuff(phobia, playerPhobiaData[phobia].currentRank);
+                        AddPhobiaDebuff(phobia, playerPhobiaData[phobia].currentRank);
                         break;
                     }
 
-                    Main.NewText($"{phobia} increased to Rank {playerPhobiaData[phobia].currentRank}", Color.Orange);
-                    // AddPhobiaDebuff(phobia, playerPhobiaData[phobia].currentRank);
+                    AddPhobiaDebuff(phobia, playerPhobiaData[phobia].currentRank);
                 }
             }
             else
             {
                 while (playerPhobiaData[phobia].currentRank != calculatedRank)
                 {
-                    Main.NewText($"{phobia} decreased to Rank {playerPhobiaData[phobia].currentRank - 1}", Color.Cyan);
-                    // RemovePhobiaDebuff(phobia, playerPhobiaData[phobia].currentRank);
+                    RemovePhobiaDebuff(phobia, playerPhobiaData[phobia].currentRank);
                     playerPhobiaData[phobia].currentRank--;
                 }
             }
@@ -275,12 +270,14 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
         private void AddPhobiaDebuff(PhobiaID phobia, int rank)
         {
-
+            PhobiaDebuff debuff = PhobiaDebuffData.SelectDebuff(phobia, rank);
+            playerPhobiaData[phobia].activeDebuffs.Add(debuff);
         }
 
         private void RemovePhobiaDebuff(PhobiaID phobia, int rank)
         {
-
+            PhobiaDebuff debuff = playerPhobiaData[phobia].activeDebuffs.FirstOrDefault(activeDebuff => activeDebuff.rank == rank);
+            playerPhobiaData[phobia].activeDebuffs.Remove(debuff);
         }
     }
 }
