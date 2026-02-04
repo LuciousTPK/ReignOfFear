@@ -128,9 +128,22 @@ namespace ReignOfFear.Content.Systems.FearSystem
         {
             { NPCID.Zombie, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
             { NPCID.ZombieRaincoat, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
+            { NPCID.VortexHornet, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
+            { NPCID.SolarDrakomire, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
+            { NPCID.GoblinScout, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
             { NPCID.BigZombie, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
-            { NPCID.Skeleton, new List<PhobiaID> { PhobiaID.Skelephobia } },
-            { NPCID.DungeonSpirit, new List<PhobiaID> { PhobiaID.Phasmophobia } },
+            { NPCID.Skeleton, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
+            { NPCID.DungeonSpirit, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
+            { NPCID.SkeletronPrime, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
+            { NPCID.PrimeCannon, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
+            { NPCID.PrimeLaser, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
+            { NPCID.PrimeSaw, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
+            { NPCID.PrimeVice, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
+            { NPCID.TheDestroyer, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
+            { NPCID.TheDestroyerBody, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
+            { NPCID.TheDestroyer, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
+            { NPCID.SkeletronHead, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
+            { NPCID.SkeletronHand, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
         };
     }
 }

@@ -3,8 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Terraria;
+using Terraria.DataStructures;
 using Terraria.ID;
 using Terraria.ModLoader;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace ReignOfFear.Content.Systems.FearSystem
 {
@@ -18,6 +20,8 @@ namespace ReignOfFear.Content.Systems.FearSystem
     internal class FearSystemPlayer : ModPlayer
     {
         Dictionary<PhobiaID, PlayerPhobiaState> playerPhobiaData = new Dictionary<PhobiaID, PlayerPhobiaState>();
+
+        private const int REFERENCE_HP = 100;
 
         public override void Initialize()
         {
@@ -36,22 +40,58 @@ namespace ReignOfFear.Content.Systems.FearSystem
         {
             base.OnHurt(info);
 
-            Main.NewText("OnHurt fired! Damage: " + info.Damage, Color.Red);
-            Main.NewText("SourceNPCIndex: " + info.DamageSource.SourceNPCIndex, Color.Yellow);
+            if (info.DamageSource.SourceNPCIndex < 0 || info.DamageSource.SourceNPCIndex >= Main.maxNPCs)
+                return;
 
-            if (info.Damage > 0)
+            NPC sourceNPC = Main.npc[info.DamageSource.SourceNPCIndex];
+
+            if (!sourceNPC.active)
+                return;
+
+            CombatTracker.RecordEnemyDamage(sourceNPC, Player.whoAmI, info.Damage);
+
+            if (info.Damage > 0 && Player.statLife - info.Damage > 0)
             {
-                NPC sourceNPC = Main.npc[info.DamageSource.SourceNPCIndex];
                 PhobiaData.NPCPhobiaMap.TryGetValue(sourceNPC.type, out List<PhobiaID> phobias);
-
                 if (phobias != null)
                 {
+                    int fearPoints = CalculateFearProgression(info.Damage, Player.statLifeMax2, Player.statLife);
                     foreach (PhobiaID phobia in phobias)
                     {
-                        AddFearPoints(phobia, 2);
+                        AddFearPoints(phobia, fearPoints);
                     }
                 }
             }
+        }
+
+        public override void Kill(double damage, int hitDirection, bool pvp, PlayerDeathReason damageSource)
+        {
+            base.Kill(damage, hitDirection, pvp, damageSource);
+
+            CombatTracker.OnPlayerDeath(Player.whoAmI);
+
+            if (damageSource.SourceNPCIndex >= 0 && damageSource.SourceNPCIndex < Main.maxNPCs)
+            {
+                NPC sourceNPC = Main.npc[damageSource.SourceNPCIndex];
+                if (PhobiaData.NPCPhobiaMap.TryGetValue(sourceNPC.type, out List<PhobiaID> phobias))
+                {
+                    foreach (PhobiaID phobia in phobias)
+                    {
+                        PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
+                        int deathPenalty = definition.postAcquisitionMax / 3;
+                        AddFearPoints(phobia, deathPenalty);
+                    }
+                }
+            }
+        }
+        
+        private int CalculateFearProgression(int damage, int maxHP, int currentHP)
+        {
+            float normalizedDamage = damage * (REFERENCE_HP / (float)maxHP);
+            float healthModifier = 1.0f - ((float)currentHP / maxHP) * 0.5f;
+            float fearPoints = normalizedDamage * healthModifier;
+
+            return (int)Math.Floor(fearPoints);
         }
 
         public PlayerPhobiaState GetPhobiaState(PhobiaID phobia)
@@ -170,6 +210,16 @@ namespace ReignOfFear.Content.Systems.FearSystem
         {
             if (playerPhobiaData[phobia].isBurden)
             {
+                return;
+            }
+
+            if (!playerPhobiaData[phobia].hasPhobia)
+            {
+                if (playerPhobiaData[phobia].fearPoints > 0)
+                {
+                    playerPhobiaData[phobia].fearPoints = Math.Max(0, playerPhobiaData[phobia].fearPoints - points);
+                }
+
                 return;
             }
 
