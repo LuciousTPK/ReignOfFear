@@ -62,12 +62,8 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
         public static void RecordPlayerDamage(NPC npc, int playerIndex, int damage)
         {
-            if (!npc.active)
+            if (!npc.active || npc.life <= 0)
                 return;
-
-            Main.NewText($"[COMBAT] NPC {npc.type}: realLife={npc.realLife}", Color.Orange);
-
-            Main.NewText($"[COMBAT] Type {npc.type}, whoAmI={npc.whoAmI}, ai[0]={npc.ai[0]}, ai[1]={npc.ai[1]}", Color.Orange);
 
             int npcKey = npc.realLife != -1 ? npc.realLife : npc.whoAmI;
 
@@ -124,11 +120,20 @@ namespace ReignOfFear.Content.Systems.FearSystem
             }
         }
 
+        public static void RecordComponentDeath(NPC npc, int combatKey)
+        {
+            if (!activeCombats.ContainsKey(combatKey))
+                return;
+
+            CombatData combat = activeCombats[combatKey];
+            combat.totalMaxHP += npc.lifeMax;
+
+            Main.NewText($"[HP TRACK] Added {npc.lifeMax} HP (Type {npc.type}). Total: {combat.totalMaxHP}", Color.Magenta);
+        }
+
         public static void OnEnemyKilled(NPC npc)
         {
             int npcKey = npc.realLife != -1 ? npc.realLife : npc.whoAmI;
-
-            Main.NewText($"[COMBAT] NPC {npc.type}: ai[0]={npc.ai[0]}, ai[1]={npc.ai[1]}", Color.Orange);
 
             if (!activeCombats.ContainsKey(npcKey))
             {
@@ -155,7 +160,6 @@ namespace ReignOfFear.Content.Systems.FearSystem
                     }
                 }
             }
-
             activeCombats.Remove(npcKey);
         }
 
@@ -205,6 +209,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
     public class CombatData
     {
         public int npcType;
+        public int totalMaxHP = 0;
         public float combatTime;
         public ulong lastDamageFrame;
 

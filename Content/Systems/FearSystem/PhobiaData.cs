@@ -141,9 +141,12 @@ namespace ReignOfFear.Content.Systems.FearSystem
             { NPCID.PrimeVice, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
             { NPCID.TheDestroyer, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
             { NPCID.TheDestroyerBody, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
-            { NPCID.TheDestroyer, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
+            { NPCID.TheDestroyerTail, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
             { NPCID.SkeletronHead, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
             { NPCID.SkeletronHand, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
+            { NPCID.GiantWormBody, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
+            { NPCID.GiantWormHead, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
+            { NPCID.GiantWormTail, new List<PhobiaID> { PhobiaID.Kinemortophobia } },
         };
     }
 }
