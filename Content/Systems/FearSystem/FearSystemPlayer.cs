@@ -329,5 +329,17 @@ namespace ReignOfFear.Content.Systems.FearSystem
             PhobiaDebuff debuff = playerPhobiaData[phobia].activeDebuffs.FirstOrDefault(activeDebuff => activeDebuff.rank == rank);
             playerPhobiaData[phobia].activeDebuffs.Remove(debuff);
         }
+
+        public bool HasDebuff(PhobiaID phobia, PhobiaDebuff.PhobiaDebuffID debuffID)
+        {
+            if (!playerPhobiaData[phobia].hasPhobia) return false;
+            return playerPhobiaData[phobia].activeDebuffs.Any(d => d.id == debuffID);
+        }
+
+        public bool HasDebuffAtRank(PhobiaID phobia, int rank)
+        {
+            if (!playerPhobiaData[phobia].hasPhobia) return false;
+            return playerPhobiaData[phobia].activeDebuffs.Any(d => d.rank == rank);
+        }
     }
 }
