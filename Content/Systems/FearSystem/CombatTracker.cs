@@ -28,6 +28,11 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
         private const float COMBAT_TIMEOUT = 10f;
 
+        private static void Log(string message)
+        {
+            ModContent.GetInstance<ReignOfFear>().Logger.Info(message);
+        }
+
         public override void PostUpdateEverything()
         {
             List<int> combatKeys = new List<int>(activeCombats.Keys);
@@ -58,6 +63,23 @@ namespace ReignOfFear.Content.Systems.FearSystem
                         }
 
                         if (!anyAlive)
+                        {
+                            shouldRemoveCombat = true;
+                        }
+                    }
+                    else if (SegmentedBossData.IsGolemType(combat.npcType))
+                    {
+                        bool anyGolemAlive = false;
+                        for (int i = 0; i < Main.maxNPCs; i++)
+                        {
+                            if (Main.npc[i].active && SegmentedBossData.IsGolemType(Main.npc[i].type))
+                            {
+                                anyGolemAlive = true;
+                                break;
+                            }
+                        }
+
+                        if (!anyGolemAlive)
                         {
                             shouldRemoveCombat = true;
                         }
@@ -116,22 +138,38 @@ namespace ReignOfFear.Content.Systems.FearSystem
             if (npc.life <= 0 && !isMoonLordEye)
                 return;
 
-            if (npc.type >= 245 && npc.type <= 249)
-            {
-                Main.NewText($"=== GOLEM DEBUG (Player hit Type {npc.type}) ===", Color.Yellow);
-                for (int i = 0; i < Main.maxNPCs; i++)
-                {
-                    NPC other = Main.npc[i];
-                    if (!other.active) continue;
-                    if (other.type < 245 || other.type > 249) continue;
-                    Main.NewText($"Type {other.type}, whoAmI={other.whoAmI}: ai[0]={other.ai[0]}, ai[1]={other.ai[1]}, ai[2]={other.ai[2]}, ai[3]={other.ai[3]}", Color.Cyan);
-                }
-            }
-
-            int npcKey;
+            int npcKey = npc.whoAmI;
             if (npc.realLife != -1)
             {
                 npcKey = npc.realLife;
+            }
+            else if (SegmentedBossData.IsEaterType(npc.type))
+            {
+                bool foundExisting = false;
+                foreach (var kvp in activeCombats)
+                {
+                    if (kvp.Value.pairedNPCs.Contains(npc.whoAmI))
+                    {
+                        npcKey = kvp.Key;
+                        foundExisting = true;
+                        break;
+                    }
+                }
+
+                if (!foundExisting)
+                {
+                    npcKey = npc.whoAmI;
+
+                    bool segmentInstantKilled = (npc.life <= 0);
+                    int upperFragmentTail = -1;
+                    int lowerFragmentHead = -1;
+
+                    if (segmentInstantKilled)
+                    {
+                        upperFragmentTail = (int)npc.ai[1];
+                        lowerFragmentHead = (int)npc.ai[0];
+                    }
+                }
             }
             else if (SegmentedBossData.IsGolemType(npc.type))
             {
@@ -177,11 +215,8 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
                 int calculatedHP = snapshotHP - damage;
 
-                Main.NewText($"[ML SNAP] Type {npc.type}: snapshot={snapshotHP}, damage={damage}, calculated={calculatedHP}", Color.Purple);
-
                 if (calculatedHP <= 0)
                 {
-                    Main.NewText($"[ML DEATH] Eye died, recording {npc.lifeMax} HP", Color.Purple);
                     RecordComponentDeath(npc, npcKey);
                     combat.moonLordEyeSnapshots.Remove(npc.whoAmI);
                 }
@@ -219,6 +254,50 @@ namespace ReignOfFear.Content.Systems.FearSystem
                         break;
                     }
                 }
+                else if (SegmentedBossData.IsEaterType(npc.type))
+                {
+                    List<int> allSegments = new List<int>();
+
+                    if (npc.life <= 0)
+                    {
+                        int upperFragmentTail = (int)npc.ai[1];
+                        int lowerFragmentHead = (int)npc.ai[0];
+
+                        for (int i = 0; i < Main.maxNPCs; i++)
+                        {
+                            if (!Main.npc[i].active || Main.npc[i].type != 15) continue;
+
+                            List<int> chain = SegmentedBossData.TraverseEaterChain(Main.npc[i].whoAmI);
+
+                            if (chain.Contains(upperFragmentTail) || chain.Contains(lowerFragmentHead))
+                            {
+                                allSegments.AddRange(chain);
+                            }
+                        }
+
+                        combat.totalMaxHP += npc.lifeMax;
+                    }
+                    else
+                    {
+                        int currentWhoAmI = npc.whoAmI;
+                        while (currentWhoAmI >= 0 && currentWhoAmI < Main.maxNPCs)
+                        {
+                            NPC current = Main.npc[currentWhoAmI];
+                            if (!current.active || !SegmentedBossData.IsEaterType(current.type))
+                                break;
+
+                            if (current.type == 15)
+                            {
+                                allSegments = SegmentedBossData.TraverseEaterChain(currentWhoAmI);
+                                break;
+                            }
+
+                            currentWhoAmI = (int)current.ai[0];
+                        }
+                    }
+
+                    combat.pairedNPCs.AddRange(allSegments);
+                }
             }
 
             CombatData combatData = activeCombats[npcKey];
@@ -239,10 +318,28 @@ namespace ReignOfFear.Content.Systems.FearSystem
             if (!npc.active)
                 return;
 
-            int npcKey;
+            int npcKey = npc.whoAmI;
             if (npc.realLife != -1)
             {
                 npcKey = npc.realLife;
+            }
+            else if (SegmentedBossData.IsEaterType(npc.type))
+            {
+                bool foundExisting = false;
+                foreach (var kvp in activeCombats)
+                {
+                    if (kvp.Value.pairedNPCs.Contains(npc.whoAmI))
+                    {
+                        npcKey = kvp.Key;
+                        foundExisting = true;
+                        break;
+                    }
+                }
+
+                if (!foundExisting)
+                {
+                    npcKey = npc.whoAmI;
+                }
             }
             else if (SegmentedBossData.IsGolemType(npc.type))
             {
@@ -306,6 +403,11 @@ namespace ReignOfFear.Content.Systems.FearSystem
                         break;
                     }
                 }
+                else if (SegmentedBossData.IsEaterType(npc.type))
+                {
+                    List<int> chain = SegmentedBossData.TraverseEaterChain(npc.whoAmI);
+                    combat.pairedNPCs.AddRange(chain);
+                }
             }
 
             CombatData combatData = activeCombats[npcKey];
@@ -324,7 +426,9 @@ namespace ReignOfFear.Content.Systems.FearSystem
         public static void RecordComponentDeath(NPC npc, int combatKey)
         {
             if (!activeCombats.ContainsKey(combatKey))
+            {
                 return;
+            }
 
             CombatData combat = activeCombats[combatKey];
             combat.totalMaxHP += npc.lifeMax;
@@ -332,9 +436,27 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
         public static void OnEnemyKilled(NPC npc)
         {
-            int npcKey;
+            int npcKey = npc.whoAmI;
             if (npc.realLife != -1)
                 npcKey = npc.realLife;
+            else if (SegmentedBossData.IsEaterType(npc.type))
+            {
+                bool foundExisting = false;
+                foreach (var kvp in activeCombats)
+                {
+                    if (kvp.Value.pairedNPCs.Contains(npc.whoAmI))
+                    {
+                        npcKey = kvp.Key;
+                        foundExisting = true;
+                        break;
+                    }
+                }
+
+                if (!foundExisting)
+                {
+                    npcKey = npc.whoAmI;
+                }
+            }
             else if (SegmentedBossData.IsGolemType(npc.type))
             {
                 if (SegmentedBossData.TryGetGolemCombatKey(activeCombats, out int golemKey))
@@ -363,16 +485,12 @@ namespace ReignOfFear.Content.Systems.FearSystem
             else
                 npcKey = npc.whoAmI;
 
-            Main.NewText($"[KILL] Type={npc.type}, whoAmI={npc.whoAmI}, Key={npcKey}", Color.Red);
-
             if (!activeCombats.ContainsKey(npcKey))
             {
-                Main.NewText($"[KILL] Not tracked, ignoring", Color.Red);
                 return;
             }
 
             CombatData combat = activeCombats[npcKey];
-
             RecordComponentDeath(npc, npcKey);
             combat.deadComponents.Add(npc.whoAmI);
             bool shouldAwardCourage = false;
@@ -383,14 +501,11 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
                 if (!isCoreDestroyed)
                 {
-                    Main.NewText($"[KILL] Golem component died, waiting for core", Color.Orange);
                     return;
                 }
 
-                Main.NewText($"[KILL] Golem core died, processing courage", Color.Orange);
                 shouldAwardCourage = true;
 
-                // Add surviving component HP
                 for (int i = 0; i < Main.maxNPCs; i++)
                 {
                     NPC otherNPC = Main.npc[i];
@@ -400,7 +515,19 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
                     int damageTaken = otherNPC.lifeMax - otherNPC.life;
                     combat.totalMaxHP += damageTaken;
-                    Main.NewText($"[HP TRACK] Surviving component {otherNPC.type}: +{damageTaken} damage taken", Color.Magenta);
+                }
+            }
+            else if (SegmentedBossData.IsEaterType(npc.type))
+            {
+                bool allDead = combat.pairedNPCs.All(whoAmI => combat.deadComponents.Contains(whoAmI));
+
+                if (allDead)
+                {
+                    shouldAwardCourage = true;
+                }
+                else
+                {
+                    return;
                 }
             }
             else if (SegmentedBossData.IsTwinType(npc.type))
@@ -409,12 +536,10 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
                 if (allDead)
                 {
-                    Main.NewText($"[KILL] All twins dead, awarding courage", Color.Orange);
                     shouldAwardCourage = true;
                 }
                 else
                 {
-                    Main.NewText($"[KILL] Twin died, waiting for pair ({combat.deadComponents.Count}/{combat.pairedNPCs.Count})", Color.Orange);
                     return;
                 }
             }
@@ -424,14 +549,11 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
                 if (!isPrimary)
                 {
-                    Main.NewText($"[KILL] Non-primary component died, not awarding courage yet", Color.Orange);
                     return;
                 }
 
-                Main.NewText($"[KILL] Primary component died, processing courage", Color.Orange);
                 shouldAwardCourage = true;
 
-                // Add surviving component HP
                 for (int i = 0; i < Main.maxNPCs; i++)
                 {
                     NPC otherNPC = Main.npc[i];
@@ -442,7 +564,6 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
                     int damageTaken = otherNPC.lifeMax - otherNPC.life;
                     combat.totalMaxHP += damageTaken;
-                    Main.NewText($"[HP TRACK] Surviving component {otherNPC.type}: +{damageTaken} damage taken", Color.Magenta);
                 }
             }
             else
@@ -454,11 +575,8 @@ namespace ReignOfFear.Content.Systems.FearSystem
             {
                 if (combat.totalMaxHP <= 0)
                 {
-                    Main.NewText($"[COURAGE] Warning: totalMaxHP is {combat.totalMaxHP}, defaulting to 1", Color.Red);
                     combat.totalMaxHP = 1;
                 }
-
-                Main.NewText($"[FINAL HP] Combat instance total max HP: {combat.totalMaxHP}", Color.Green);
 
                 foreach (int playerIndex in combat.playerDamageContributions.Keys)
                 {

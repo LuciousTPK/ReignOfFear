@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using Microsoft.Xna.Framework;
+using System.Collections.Generic;
+using Terraria;
 
 namespace ReignOfFear.Content.Systems.FearSystem
 {
@@ -13,8 +15,10 @@ namespace ReignOfFear.Content.Systems.FearSystem
     {
         private static Dictionary<int, AIGroupConfig> AIGroupedBosses = new Dictionary<int, AIGroupConfig>();
         private static Dictionary<int, int> npcToCombatKey = new Dictionary<int, int>();
+
         private static readonly HashSet<int> TwinTypes = new HashSet<int> { 125, 126 };
         private static readonly HashSet<int> GolemTypes = new HashSet<int> { 245, 246, 247, 248, 249 };
+        private static readonly HashSet<int> EaterTypes = new HashSet<int> { 13, 14, 15 };
 
         static SegmentedBossData()
         {
@@ -108,6 +112,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
                     return true;
                 }
             }
+
             existingKey = -1;
             return false;
         }
@@ -140,6 +145,45 @@ namespace ReignOfFear.Content.Systems.FearSystem
             {
                 npcToCombatKey.Remove(npcWhoAmI);
             }
+        }
+
+        public static bool IsEaterType(int npcType)
+        {
+            return EaterTypes.Contains(npcType);
+        }
+
+        public static List<int> TraverseEaterChain(int startWhoAmI)
+        {
+            List<int> chain = new List<int>();
+            HashSet<int> visited = new HashSet<int>();
+
+            int currentWhoAmI = startWhoAmI;
+
+            while (currentWhoAmI >= 0 && currentWhoAmI < Main.maxNPCs)
+            {
+                if (visited.Contains(currentWhoAmI))
+                {
+                    break;
+                }
+
+                NPC segment = Main.npc[currentWhoAmI];
+                if (!segment.active || !IsEaterType(segment.type))
+                {
+                    break;
+                }
+
+                chain.Add(currentWhoAmI);
+                visited.Add(currentWhoAmI);
+
+                if (segment.type == 13)
+                {
+                    break;
+                }
+
+                currentWhoAmI = (int)segment.ai[1];
+            }
+
+            return chain;
         }
     }
 }

@@ -10,8 +10,6 @@ namespace ReignOfFear.Content.Systems.FearSystem
         public override void OnSpawn(NPC npc, IEntitySource source)
         {
             base.OnSpawn(npc, source);
-
-            Main.NewText($"[SPAWN] Type {npc.type}, whoAmI={npc.whoAmI}, ai[0]={npc.ai[0]}, ai[1]={npc.ai[1]}, ai[2]={npc.ai[2]}, ai[3]={npc.ai[3]}", Color.Lime);
         }
         public override void ModifyHitByItem(NPC npc, Player player, Item item, ref NPC.HitModifiers modifiers)
         {
