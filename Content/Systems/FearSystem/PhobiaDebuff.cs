@@ -1,8 +1,7 @@
-﻿using Microsoft.Xna.Framework;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Terraria;
+using static ReignOfFear.Content.Systems.FearSystem.PhobiaDebuff;
 
 namespace ReignOfFear.Content.Systems.FearSystem
 {
@@ -10,20 +9,20 @@ namespace ReignOfFear.Content.Systems.FearSystem
     {
         public enum PhobiaDebuffID
         {
-            Gingivitis,
-            StinkBrain,
-            ConnectButNoInternet,
-            NoBitches,
-            Cringe,
-            NoMoney,
-            OneEarBudStoppedWorking,
-            SleptOnTheWrongSideOfTheBed,
-            Sadness,
-            InsertBadThingHere
+            // Enemy Phobia Rank 2
+            TraumaticStrike,
+            TerrorRadius,
+            FearToxin,
+            CalledByTheGrave,
+
+            // Enemy Phobia Rank 3
+            DarkCovenant,
+            HaroldsOfDoom,
+            SpectralChain,
+            BlessedByEvil,
         }
 
         public PhobiaDebuffID id;
-        public string effectDescription; // Stub for now
         public PhobiaDefinition.PhobiaType type;
         public int rank;
     }
@@ -50,13 +49,8 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 PhobiaDefinition.PhobiaType.Enemy,
                 new List<PhobiaDebuff>
                 {
-                    new PhobiaDebuff { id = PhobiaDebuff.PhobiaDebuffID.Gingivitis, effectDescription = "Your teeth hurt. -10% damage.", type = PhobiaDefinition.PhobiaType.Enemy, rank = 2 },
-                    new PhobiaDebuff { id = PhobiaDebuff.PhobiaDebuffID.StinkBrain, effectDescription = "Brain fog. -15% movement speed.", type = PhobiaDefinition.PhobiaType.Enemy, rank = 2 },
-                    new PhobiaDebuff { id = PhobiaDebuff.PhobiaDebuffID.ConnectButNoInternet, effectDescription = "Existential dread. -5% all stats.", type = PhobiaDefinition.PhobiaType.Enemy, rank = 2 },
-                    new PhobiaDebuff { id = PhobiaDebuff.PhobiaDebuffID.NoBitches, effectDescription = "Crushing loneliness. -20% defense.", type = PhobiaDefinition.PhobiaType.Enemy, rank = 3 },
-                    new PhobiaDebuff { id = PhobiaDebuff.PhobiaDebuffID.Cringe, effectDescription = "Remembering that thing you said. -25% damage.", type = PhobiaDefinition.PhobiaType.Enemy, rank = 3 },
-                    new PhobiaDebuff { id = PhobiaDebuff.PhobiaDebuffID.NoMoney, effectDescription = "Checking bank account. -30% movement speed.", type = PhobiaDefinition.PhobiaType.Enemy, rank = 3 },
-                    new PhobiaDebuff { id = PhobiaDebuff.PhobiaDebuffID.OneEarBudStoppedWorking, effectDescription = "Worst possible thing. -50% all stats.", type = PhobiaDefinition.PhobiaType.Enemy, rank = 4 }
+                    new PhobiaDebuff { id = PhobiaDebuffID.TerrorRadius, type = PhobiaDefinition.PhobiaType.Enemy, rank = 2 },
+                    new PhobiaDebuff { id = PhobiaDebuffID.TraumaticStrike, type = PhobiaDefinition.PhobiaType.Enemy, rank = 2 },
                 }
             }
         };
@@ -67,9 +61,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 PhobiaID.Kinemortophobia,
                 new List<PhobiaDebuff>
                 {
-                    new PhobiaDebuff { id = PhobiaDebuff.PhobiaDebuffID.SleptOnTheWrongSideOfTheBed, effectDescription = "Everything hurts. -12% defense.", type = PhobiaDefinition.PhobiaType.Enemy, rank = 2 },
-                    new PhobiaDebuff { id = PhobiaDebuff.PhobiaDebuffID.Sadness, effectDescription = "Just sad. -20% all stats.", type = PhobiaDefinition.PhobiaType.Enemy, rank = 3 },
-                    new PhobiaDebuff { id = PhobiaDebuff.PhobiaDebuffID.InsertBadThingHere, effectDescription = "The worst. -100% hope.", type = PhobiaDefinition.PhobiaType.Enemy, rank = 4 }
+                    
                 }
             }
         };

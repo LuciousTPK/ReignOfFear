@@ -1,1 +1,6 @@
-
+Buffs: {
+	TraumaticStrike: {
+		DisplayName: Traumatic Strike
+		Description: Mods.ReignOfFear.Buffs.TraumaticStrike.Description
+	}
+}

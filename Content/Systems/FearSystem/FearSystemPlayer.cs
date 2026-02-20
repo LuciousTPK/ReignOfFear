@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using ReignOfFear.Content.Systems.FearSystem.PlayerDebuffs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,6 +7,7 @@ using Terraria;
 using Terraria.DataStructures;
 using Terraria.ID;
 using Terraria.ModLoader;
+using static ReignOfFear.Content.Systems.FearSystem.PhobiaDebuff;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace ReignOfFear.Content.Systems.FearSystem
@@ -22,6 +24,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
         Dictionary<PhobiaID, PlayerPhobiaState> playerPhobiaData = new Dictionary<PhobiaID, PlayerPhobiaState>();
 
         private const int REFERENCE_HP = 100;
+        public float bonusMultiplier = 0f;
 
         public override void Initialize()
         {
@@ -56,10 +59,25 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 if (phobias != null)
                 {
                     int fearPoints = CalculateFearProgression(info.Damage, Player.statLifeMax2, Player.statLife);
+
+                    foreach (PhobiaID phobia in phobias)
+                    {
+                        if (HasDebuff(phobia, PhobiaDebuff.PhobiaDebuffID.TraumaticStrike))
+                        {
+                            if (Main.rand.NextFloat() < 0.2f)
+                            {
+                                Player.AddBuff(ModContent.BuffType<TraumaticStrike>(), 30 * 60);
+                            }
+                            break;
+                        }
+                    }
+
                     foreach (PhobiaID phobia in phobias)
                     {
                         AddFearPoints(phobia, fearPoints);
                     }
+
+                    bonusMultiplier = 0f;
                 }
             }
         }
@@ -81,6 +99,8 @@ namespace ReignOfFear.Content.Systems.FearSystem
                         int deathPenalty = definition.postAcquisitionMax / 3;
                         AddFearPoints(phobia, deathPenalty);
                     }
+
+                    bonusMultiplier = 0f;
                 }
             }
         }
@@ -112,6 +132,11 @@ namespace ReignOfFear.Content.Systems.FearSystem
             {
                 return;
             }
+
+            bonusMultiplier += EnemyPhobiaEffects.ApplyTerrorRadius(Player, phobia);
+            bonusMultiplier += EnemyPhobiaEffects.ApplyTraumaticStrike(Player, phobia);
+
+            points = (int)(points * (1 + bonusMultiplier));
 
             if (playerPhobiaData[phobia].hasPhobia)
             {
