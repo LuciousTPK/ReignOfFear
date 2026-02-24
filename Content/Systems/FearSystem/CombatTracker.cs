@@ -1,12 +1,18 @@
-﻿using Microsoft.Xna.Framework;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Terraria;
+using Terraria.ID;
 using Terraria.ModLoader;
 
 namespace ReignOfFear.Content.Systems.FearSystem
 {
+    /// <summary>
+    /// This is a data container that we use to track a multitude of variables that the combat tracker
+    /// uses in order to determine when combat starts, ends, and how much courage should be awarded
+    /// when a combat instance ends
+    /// </summary>
+
     public class CombatData
     {
         public int npcType;
@@ -22,20 +28,36 @@ namespace ReignOfFear.Content.Systems.FearSystem
         public HashSet<int> deadComponents = new HashSet<int>();
     }
 
+    /// <summary>
+    /// The combat tracker is single handedly the most important system that drive the Fear System. It
+    /// tracks all enemy combat instances, what constitutes as a combat instance, drives logic around
+    /// courage accumulation, and allows for us to know exactly what every player/enemy is doing at any given moment
+    /// 
+    /// Combat risk is determined by three things: the player's active combat time, how much health vs their max health was lost,
+    /// and how much damage the player actually did to the threat. Potential courage is calculated by how much damage the player
+    /// took added to the amount of time the combat took. Then, courage is awarded depending on how much damage the player did to the enemy
+    /// 
+    /// Luckily, the 'whoAmI' array makes this tracker possible as it guarantees us a unique key for us to tie to the combat instance
+    /// that most other values also happen to run off of (I.E. certain important ai[] values or 'realLife' values). This allows
+    /// the combat tracker to accurately separate different instances of combat to ensure the most accurate data for courage
+    /// calculations in this sytem
+    /// 
+    /// Something to note is that the total damage percentage needed changes with the number of participating players,
+    /// and the HP of damaged components/destroyed components are added to the total HP of the fight depending on their
+    /// relevance in the combat instance (determined by max HP - current HP, unless the part of destroyed in which case
+    /// their full max HP is added)
+    /// </summary>
+
     public class CombatTracker : ModSystem
     {
         private static Dictionary<int, CombatData> activeCombats = new Dictionary<int, CombatData>();
 
         private const float COMBAT_TIMEOUT = 10f;
 
-        private static void Log(string message)
-        {
-            ModContent.GetInstance<ReignOfFear>().Logger.Info(message);
-        }
-
+        // This method is used to update trackers and to end them if NPCs happen to despawn instead of die
         public override void PostUpdateEverything()
         {
-            List<int> combatKeys = new List<int>(activeCombats.Keys);
+            List<int> combatKeys = [..activeCombats.Keys];
 
             foreach (int npcKey in combatKeys)
             {
@@ -110,6 +132,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
             }
         }
 
+        // Helper method that locates specific combat instances via a key (usually the 'whoAmI')
         private static NPC FindNPCByKey(int key)
         {
             for (int i = 0; i < Main.maxNPCs; i++)
@@ -128,12 +151,13 @@ namespace ReignOfFear.Content.Systems.FearSystem
             return null;
         }
 
+        // Used to intiate combat instances when a player deals the first hit
         public static void RecordPlayerDamage(NPC npc, int playerIndex, int damage)
         {
             if (!npc.active)
                 return;
 
-            bool isMoonLordEye = (npc.type == 396 || npc.type == 397);
+            bool isMoonLordEye = (npc.type == NPCID.MoonLordHead || npc.type == NPCID.MoonLordHand);
 
             if (npc.life <= 0 && !isMoonLordEye)
                 return;
@@ -205,7 +229,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 npcKey = npc.whoAmI;
             }
 
-            if ((npc.type == 396 || npc.type == 397) && activeCombats.ContainsKey(npcKey))
+            if ((npc.type == NPCID.MoonLordHead || npc.type == NPCID.MoonLordHand) && activeCombats.ContainsKey(npcKey))
             {
                 CombatData combat = activeCombats[npcKey];
 
@@ -265,7 +289,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
                         for (int i = 0; i < Main.maxNPCs; i++)
                         {
-                            if (!Main.npc[i].active || Main.npc[i].type != 15) continue;
+                            if (!Main.npc[i].active || Main.npc[i].type != NPCID.EaterofWorldsTail) continue;
 
                             List<int> chain = SegmentedBossData.TraverseEaterChain(Main.npc[i].whoAmI);
 
@@ -286,7 +310,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
                             if (!current.active || !SegmentedBossData.IsEaterType(current.type))
                                 break;
 
-                            if (current.type == 15)
+                            if (current.type == NPCID.EaterofWorldsTail)
                             {
                                 allSegments = SegmentedBossData.TraverseEaterChain(currentWhoAmI);
                                 break;
@@ -313,6 +337,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
             }
         }
 
+        // Similar to the above method, but instead used to intiate combat instances when an enemy deals the first strike
         public static void RecordEnemyDamage(NPC npc, int playerIndex, int damage)
         {
             if (!npc.active)
@@ -423,6 +448,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
             }
         }
 
+        // Helper method that tracks when a segmented enemy's component is destroyed, but not the core
         public static void RecordComponentDeath(NPC npc, int combatKey)
         {
             if (!activeCombats.ContainsKey(combatKey))
@@ -434,6 +460,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
             combat.totalMaxHP += npc.lifeMax;
         }
 
+        // This method runs when an enemy dies (or the core of a segmented enemy dies) which allows us to end the combat instance and award courage
         public static void OnEnemyKilled(NPC npc)
         {
             int npcKey = npc.whoAmI;
@@ -497,7 +524,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
             if (SegmentedBossData.IsGolemType(npc.type))
             {
-                bool isCoreDestroyed = (npc.type == 245);
+                bool isCoreDestroyed = (npc.type == NPCID.Golem);
 
                 if (!isCoreDestroyed)
                 {
@@ -605,6 +632,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
             }
         }
 
+        // This method calculates how much courage the player should receive when combat ends
         public static int CalculateCourage(CombatData combat, Player player, int enemyMaxHP)
         {
             float timePoints = Math.Min(50f, (combat.combatTime / 180f) * 50f);
@@ -640,6 +668,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
             return (int)Math.Floor(finalCourage);
         }
 
+        // This method wipes the 'potential courage' of all combat instances a dead player was involved in (without removing their existence in the combat instance)
         public static void OnPlayerDeath(int playerIndex)
         {
             foreach (CombatData combat in activeCombats.Values)

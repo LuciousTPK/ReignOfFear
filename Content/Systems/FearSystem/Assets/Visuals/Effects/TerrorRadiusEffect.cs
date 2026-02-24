@@ -5,6 +5,11 @@ using Terraria.ModLoader;
 
 namespace ReignOfFear.Content.Systems.FearSystem.Assets.Visuals.Effects
 {
+    /// <summary>
+    /// Basic, temporary effect for the Terror Radius phobia debuff
+    /// This is still a WIP
+    /// </summary>
+
     public class TerrorRadiusEffect : ModSystem
     {
         private static Texture2D vignetteTexture;

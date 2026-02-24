@@ -2,6 +2,17 @@
 
 namespace ReignOfFear.Content.Systems.FearSystem
 {
+    /// <summary>
+    /// Similar to how PhobiaDefinition creates an instance of static phobia data
+    /// this class also creates an instance of phobia data, however this data
+    /// is the data that gets tracked, changed, or is otherwise interacted with
+    /// by the player/mod
+    /// 
+    /// It includes the current fear/courage value, if the player has it,
+    /// if they are immune to it, if its a burden, active debuffs, and
+    /// the current rank of the phobia
+    /// </summary>
+
     internal class PlayerPhobiaState
     {
         public int fearPoints;

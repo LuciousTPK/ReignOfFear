@@ -6,6 +6,11 @@ using Terraria.ModLoader;
 
 namespace ReignOfFear.Content.Systems.FearSystem.Assets.Visuals.Effects
 {
+    /// <summary>
+    /// Basic, temporary effect for the Traumatic Strike phobia debuff
+    /// This is still a WIP
+    /// </summary>
+
     public class TraumaticStrikeEffect : ModSystem
     {
         private static Texture2D flashTexture;

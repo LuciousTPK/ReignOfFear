@@ -5,6 +5,13 @@ using Terraria.ModLoader;
 
 namespace ReignOfFear.Content.Commands
 {
+    /// <summary>
+    /// Dev commands that allow for the manipulation of the Fear System for testing purposes
+    /// Currently it allows you to do a multitude of things, such as adding/removing phobias,
+    /// adding/removing fear, adding/removing courage, and more. Useful for ongoing tests with
+    /// the Fear System as a whole and is integral to the development process of this mod
+    /// </summary>
+
     public class FearDebugCommand : ModCommand
     {
         public override string Command => "fear";

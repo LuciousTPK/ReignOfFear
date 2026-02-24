@@ -1,10 +1,17 @@
-﻿using Microsoft.Xna.Framework;
-using Terraria;
+﻿using Terraria;
 using Terraria.DataStructures;
 using Terraria.ModLoader;
 
 namespace ReignOfFear.Content.Systems.FearSystem
 {
+    /// <summary>
+    /// This file is used as our primary tracker for NPC instances. Generally speaking, most logic regarding
+    /// courage accumulation is done here since killing enemies is the primary way to gain it. Think of this file
+    /// as the opposite of FearSystemPlayer which has many trackers for Fear progression. We also use this file
+    /// to track when combat instances are created for enemies based on player interaction rather than enemy
+    /// interaction
+    /// </summary>
+
     public class FearGlobalNPC : GlobalNPC
     {
         public override void OnSpawn(NPC npc, IEntitySource source)

@@ -5,6 +5,12 @@ using Terraria.ModLoader;
 
 namespace ReignOfFear.Content.Commands
 {
+    /// <summary>
+    /// Dev command for spawning multiple enemies on the same frame
+    /// Mostly used for testing the combat tracker, but is also handy for testing
+    /// phobia debuffs, external NPC tracking logic, or possible IL edits in the future
+    /// </summary>
+
     public class SpawnMultipleCommand : ModCommand
     {
         public override string Command => "spawnmultiple";
@@ -32,10 +38,9 @@ namespace ReignOfFear.Content.Commands
 
             Player player = caller.Player;
 
-            // Spawn all NPCs on the same frame
             for (int i = 0; i < count; i++)
             {
-                int offsetX = i * 100; // Space them out horizontally
+                int offsetX = i * 100;
                 NPC.NewNPC(new EntitySource_DebugCommand("SpawnMultiple"),
                     (int)player.Center.X + offsetX,
                     (int)player.Center.Y - 200,
