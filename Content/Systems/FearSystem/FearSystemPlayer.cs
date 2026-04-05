@@ -11,9 +11,88 @@ namespace ReignOfFear.Content.Systems.FearSystem
     // Defines phobias based on their name--acts as a key for PhobiaData and PlayerPhobiaStates
     public enum PhobiaID
     {
-        Kinemortophobia,
-        Phasmophobia,
-        Skelephobia
+        // Enemy Phobias
+        Kinemortophobia,      // Fear of Zombies
+        Phasmophobia,         // Fear of Spirits
+        Osteonecrophobia,     // Fear of Skeletons
+        Entomophobia,         // Fear of Insectoids
+        Scoleciphobia,        // Fear of Worms
+        Anthropophobia,       // Fear of Humanoids
+        Mechanophobia,        // Fear of Constructs
+        Allotriophobia,       // Fear of Aliens
+        Myxophobia,           // Fear of Slimes
+        Botanophobia,         // Fear of Plants
+        Stoicheiophobia,      // Fear of Elementals
+        Ichthyophobia,        // Fear of Marine Beasts
+        Zoophobia,            // Fear of Beasts/Animals
+        Ornithophobia,        // Fear of Avians
+        Daemonophobia,        // Fear of Demons
+        Sarcophobia,          // Fear of Aberrations
+        Arachnophobia,        // Fear of Arachnids
+
+        // Boss Phobias
+        Toichossarkasphobia,        // Fear of Wall of Flesh
+        Didymamatiaphobia,          // Fear of The Twins
+        Skoulikikatastrofeaphobia,  // Fear of The Destroyer
+        Metallikokraniophobia,      // Fear of Skeletron Prime
+        Iptamenokraniophobia,       // Fear of Skeletron
+        Agiasmeniglitsaphobia,      // Fear of Queen Slime
+        Vasilikimelissaphobia,      // Fear of Queen Bee
+        Sarkofagofytophobia,        // Fear of Plantera
+        Seliniakostheosphobia,      // Fear of Moon Lord
+        Parafronproskynitisphobia,  // Fear of Lunatic Cultist
+        Vasilikiglitsaphobia,       // Fear of King Slime
+        Petrinimichaniphobia,       // Fear of Golem
+        Matiterasphobia,            // Fear of Eye of Cthulhu
+        Theatoufotosphobia,         // Fear of Empress of Light
+        Katanalotisplanitiphobia,   // Fear of Eater of Worlds
+        Psarigourouniphobia,        // Fear of Duke Fishron
+        Kykloptikoelafiphobia,      // Fear of Deerclops
+        Tromaktikomyalophobia,      // Fear of Brain of Cthulhu
+
+        // Biome Phobias
+        Archaioereipiophobia,  // Fear of Temple
+        Chioniphobia,          // Fear of Snow Biome
+        Thalassaphobia,        // Fear of Ocean Biome
+        Mycophobia,            // Fear of Mushroom Biome
+        Zounklaphobia,         // Fear of Jungle Biome
+        Stygiophobia,          // Fear of Hell Biome
+        Photophobia,           // Fear of Hallow Biome
+        Hylophobia,            // Fear of Forest Biome
+        Katakomvesphobia,      // Fear of Dungeon Biome
+        Ammophobia,            // Fear of Desert Biome
+        Hemophobia,            // Fear of Crimson Biome
+        Kakigiphobia,          // Fear of Corruption Biome
+        Speluncaphobia,        // Fear of Cavern Biome
+
+        // Event Phobias
+        Kakofengariphobia,          // Fear of Blood Moon
+        Psychrosstratosphobia,      // Fear of Frost Legion
+        Pagomenofengariphobia,      // Fear of Frost Moon
+        Eisvolikalikantzaronphobia, // Fear of Goblin Army
+        Seliniakieisvoliphobia,     // Fear of Lunar Event
+        Exogiiniparafrosyniphobia,  // Fear of Martian Madness
+        Archaiosstratosphobia,      // Fear of Old One's Army
+        Peiratikiepithesiphobia,    // Fear of Pirate Invasion
+        Apokosmofengariphobia,      // Fear of Pumpkin Moon
+        Ombrophobia,                // Fear of Rain
+        Ammothyellaphobia,          // Fear of Sandstorm
+        Gloiovrochiaphobia,         // Fear of Slime Rain
+        Kosmikophobia,              // Fear of Solar Eclipse
+
+        // Debuff Phobias
+        Spasmeniamynaphobia,   // Fear of Armor Debuffs
+        Adynamiaphobia,        // Fear of Damage Debuffs
+        Meionektimaphobia,     // Fear of Disability Debuffs
+        Ponosphobia,           // Fear of Harmful Debuffs
+        Argosphobia,           // Fear of Movement Debuffs
+
+        // Environmental Phobias
+        Skotadiphobia,   // Fear of Darkness
+        Imeraphobia,     // Fear of Day
+        Ygrifotiaphobia, // Fear of Lava
+        Nychtaphobia,    // Fear of Night
+        Nerophobia,      // Fear of Water
     }
 
     /// <summary>
@@ -130,7 +209,9 @@ namespace ReignOfFear.Content.Systems.FearSystem
                     foreach (PhobiaID phobia in phobias)
                     {
                         PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
-                        int deathPenalty = definition.postAcquisitionMax / 3;
+                        int deathPenalty = playerPhobiaData[phobia].hasPhobia
+                            ? definition.postAcquisitionMax / 3
+                            : definition.preAcquisitionMax / 3;
                         AddFearPoints(phobia, deathPenalty);
                     }
 
@@ -138,7 +219,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 }
             }
         }
-        
+
         // Helper method that produces fear points from health damage
         private int CalculateFearProgression(int damage, int maxHP, int currentHP)
         {

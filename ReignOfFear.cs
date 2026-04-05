@@ -1,8 +1,13 @@
+using Microsoft.Xna.Framework.Graphics;
+using ReignOfFear.Content.Skies;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Terraria;
+using Terraria.Graphics.Effects;
+using Terraria.ID;
 using Terraria.ModLoader;
 
 namespace ReignOfFear
@@ -11,5 +16,5 @@ namespace ReignOfFear
 	public class ReignOfFear : Mod
 	{
 
-	}
+    }
 }
