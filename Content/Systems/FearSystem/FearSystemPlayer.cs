@@ -1,9 +1,11 @@
-﻿using ReignOfFear.Content.Systems.FearSystem.PlayerDebuffs;
+﻿using Microsoft.Xna.Framework;
+using ReignOfFear.Content.Systems.FearSystem.PlayerDebuffs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Terraria;
 using Terraria.DataStructures;
+using Terraria.ID;
 using Terraria.ModLoader;
 
 namespace ReignOfFear.Content.Systems.FearSystem
@@ -119,6 +121,19 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
         private const int REFERENCE_HP = 100;
 
+        // Timer for hazards such as enviromental dangers and DOTs
+        private int hazardTicker = 0;
+
+        // Roughly the kill speed of lava and drowning with their timer
+        private const int DROWNING_DPS = 16;
+        private const int LAVA_DPS = 66;
+
+        // Constants revolving around invasion event location and the event/boss timer
+        private const int EVENT_BOSS_FEAR_PER_SECOND = 2;
+        private const int INVASION_HORIZONTAL_TILES = 187;
+        private const int INVASION_VERTICAL_TILES = 67;
+        private int eventBossTicker = 0;
+
         /// <remarks>
         /// Additive multiplier used at final fear calculation
         /// 
@@ -150,48 +165,451 @@ namespace ReignOfFear.Content.Systems.FearSystem
             }
         }
 
+        // Currently used in order to update phobia progression that occurs via intervals and update interval timers
+        public override void PostUpdate()
+        {
+            hazardTicker++;
+            eventBossTicker++;
+
+            if (hazardTicker % 60 == 0)
+            {
+                if (Player.wet && !Player.lavaWet && !Player.honeyWet
+                    && Player.breath < Player.breathMax
+                    && Player.breath > 0)
+                {
+                    int drowningFear = Math.Max(1, CalculateFearProgression(
+                        DROWNING_DPS, Player.statLifeMax2, Player.statLife));
+                    AddFearPoints(PhobiaID.Nerophobia, drowningFear);
+                }
+
+                if (Player.lavaWet && !Player.lavaImmune)
+                {
+                    int lavaFear = Math.Max(1, CalculateFearProgression(
+                        LAVA_DPS, Player.statLifeMax2, Player.statLife));
+                    AddFearPoints(PhobiaID.Ygrifotiaphobia, lavaFear);
+                }
+
+                int totalDotDPS = 0;
+
+                if (Player.HasBuff(BuffID.Poisoned))
+                    totalDotDPS += 2;
+
+                if (Player.HasBuff(BuffID.OnFire))
+                    totalDotDPS += 4;
+
+                if (Player.HasBuff(BuffID.CursedInferno))
+                    totalDotDPS += 12;
+
+                if (Player.HasBuff(BuffID.Frostburn))
+                    totalDotDPS += 8;
+
+                if (Player.HasBuff(BuffID.Venom))
+                    totalDotDPS += 16;
+
+                if (Player.HasBuff(BuffID.Suffocation))
+                    totalDotDPS += 20;
+
+                if (Player.HasBuff(BuffID.Electrified))
+                    totalDotDPS += Math.Abs(Player.velocity.X) > 0.1f ? 20 : 4;
+
+                if (Player.HasBuff(BuffID.Starving))
+                    totalDotDPS += (int)(Player.statLifeMax2 * 0.02f);
+
+                if (totalDotDPS > 0)
+                {
+                    int dotFear = Math.Max(1, CalculateFearProgression(
+                        totalDotDPS, Player.statLifeMax2, Player.statLife));
+                    AddFearPoints(PhobiaID.Ponosphobia, dotFear);
+                }
+            }
+
+            if (eventBossTicker % 60 == 0)
+            {
+                CheckEventTerrorRadius();
+                CheckBossTerrorRadius();
+            }
+        }
+
+        // Event tracker to see if the player is in an event's terror radius
+        private void CheckEventTerrorRadius()
+        {
+            bool atSurface = Player.ZoneOverworldHeight || Player.ZoneSkyHeight;
+            bool inInvasionRange = IsPlayerInInvasionRange();
+
+            if (atSurface)
+            {
+                if (Main.bloodMoon)
+                    AddFearPoints(PhobiaID.Kakofengariphobia, EVENT_BOSS_FEAR_PER_SECOND);
+
+                if (Main.raining)
+                    AddFearPoints(PhobiaID.Ombrophobia, EVENT_BOSS_FEAR_PER_SECOND);
+
+                if (Main.eclipse)
+                    AddFearPoints(PhobiaID.Kosmikophobia, EVENT_BOSS_FEAR_PER_SECOND);
+
+                if (Main.slimeRain)
+                    AddFearPoints(PhobiaID.Gloiovrochiaphobia, EVENT_BOSS_FEAR_PER_SECOND);
+            }
+
+            if (Player.ZoneOverworldHeight && Player.ZoneSandstorm)
+                AddFearPoints(PhobiaID.Ammothyellaphobia, EVENT_BOSS_FEAR_PER_SECOND);
+
+            if (Player.ZoneOverworldHeight)
+            {
+                if (Main.pumpkinMoon)
+                    AddFearPoints(PhobiaID.Apokosmofengariphobia, EVENT_BOSS_FEAR_PER_SECOND);
+
+                if (Main.snowMoon)
+                    AddFearPoints(PhobiaID.Pagomenofengariphobia, EVENT_BOSS_FEAR_PER_SECOND);
+            }
+
+            if (Player.ZoneOldOneArmy)
+                AddFearPoints(PhobiaID.Archaiosstratosphobia, EVENT_BOSS_FEAR_PER_SECOND);
+
+            if (Player.ZoneTowerNebula || Player.ZoneTowerSolar
+                || Player.ZoneTowerStardust || Player.ZoneTowerVortex)
+                AddFearPoints(PhobiaID.Seliniakieisvoliphobia, EVENT_BOSS_FEAR_PER_SECOND);
+
+            if (Main.invasionType != 0 && Main.invasionSize > 0 && inInvasionRange)
+            {
+                switch (Main.invasionType)
+                {
+                    case InvasionID.GoblinArmy:
+                        AddFearPoints(PhobiaID.Eisvolikalikantzaronphobia, EVENT_BOSS_FEAR_PER_SECOND);
+                        break;
+
+                    case InvasionID.SnowLegion:
+                        AddFearPoints(PhobiaID.Psychrosstratosphobia, EVENT_BOSS_FEAR_PER_SECOND);
+                        break;
+
+                    case InvasionID.PirateInvasion:
+                        AddFearPoints(PhobiaID.Peiratikiepithesiphobia, EVENT_BOSS_FEAR_PER_SECOND);
+                        break;
+
+                    case InvasionID.MartianMadness:
+                        AddFearPoints(PhobiaID.Exogiiniparafrosyniphobia, EVENT_BOSS_FEAR_PER_SECOND);
+                        break;
+                }
+            }
+        }
+
+        // Boss tracker to see if a player is in it's terror radius
+        private void CheckBossTerrorRadius()
+        {
+            Rectangle detectionBounds = new Rectangle(
+                (int)Main.screenPosition.X,
+                (int)Main.screenPosition.Y,
+                Main.screenWidth,
+                Main.screenHeight);
+            detectionBounds.Inflate(5000, 5000);
+
+            HashSet<PhobiaID> tickedPhobias = null;
+
+            for (int i = 0; i < Main.maxNPCs; i++)
+            {
+                NPC npc = Main.npc[i];
+
+                if (!npc.active)
+                    continue;
+
+                if (!npc.boss && NPCID.Sets.BossHeadTextures[npc.type] < 0)
+                    continue;
+
+                if (!npc.Hitbox.Intersects(detectionBounds))
+                    continue;
+
+                if (!PhobiaData.NPCPhobiaMap.TryGetValue(npc.type, out List<PhobiaID> phobias))
+                    continue;
+
+                if (tickedPhobias == null)
+                    tickedPhobias = new HashSet<PhobiaID>();
+
+                foreach (PhobiaID phobia in phobias)
+                {
+                    if (!PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition def))
+                        continue;
+
+                    if (def.type != PhobiaDefinition.PhobiaType.Boss)
+                        continue;
+
+                    if (!tickedPhobias.Add(phobia))
+                        continue;
+
+                    AddFearPoints(phobia, EVENT_BOSS_FEAR_PER_SECOND);
+                }
+            }
+        }
+
+        // Checks if the player is actively in an event zone near spawn
+        private bool IsPlayerInInvasionRange()
+        {
+            int playerTileX = (int)(Player.Center.X / 16f);
+            int playerTileY = (int)(Player.Center.Y / 16f);
+
+            return Math.Abs(playerTileX - Main.spawnTileX) <= INVASION_HORIZONTAL_TILES
+                   && playerTileY <= Main.worldSurface + INVASION_VERTICAL_TILES;
+        }
+
         // The primary method we use to identify what NPC/projectile hurt the player, initialize combat instances for NPCs, and add fear points based on damage
         public override void OnHurt(Player.HurtInfo info)
         {
             base.OnHurt(info);
 
-            if (info.DamageSource.SourceNPCIndex < 0 || info.DamageSource.SourceNPCIndex >= Main.maxNPCs)
+            if (info.Damage <= 0 || Player.statLife - info.Damage <= 0)
                 return;
 
-            NPC sourceNPC = Main.npc[info.DamageSource.SourceNPCIndex];
+            int fearPoints = CalculateFearProgression(info.Damage, Player.statLifeMax2, Player.statLife);
 
-            if (!sourceNPC.active)
-                return;
+            NPC sourceNPC = null;
 
-            CombatTracker.RecordEnemyDamage(sourceNPC, Player.whoAmI, info.Damage);
+            bool isProjectileDamage = info.DamageSource.SourceProjectileLocalIndex >= 0
+                                      && info.DamageSource.SourceProjectileLocalIndex < Main.maxProjectiles;
+            bool isDirectNPCDamage = info.DamageSource.SourceNPCIndex >= 0
+                                      && info.DamageSource.SourceNPCIndex < Main.maxNPCs;
 
-            if (info.Damage > 0 && Player.statLife - info.Damage > 0)
+            if (isProjectileDamage)
             {
-                PhobiaData.NPCPhobiaMap.TryGetValue(sourceNPC.type, out List<PhobiaID> phobias);
-                if (phobias != null)
+                Projectile proj = Main.projectile[info.DamageSource.SourceProjectileLocalIndex];
+                if (proj.active)
                 {
-                    int fearPoints = CalculateFearProgression(info.Damage, Player.statLifeMax2, Player.statLife);
+                    var projData = proj.GetGlobalProjectile<FearGlobalProjectile>();
 
-                    foreach (PhobiaID phobia in phobias)
+                    if (projData.sourceNPCIndex == -2)
+                        return;
+
+                    if (projData.sourceNPCIndex >= 0)
+                    {
+                        NPC candidate = Main.npc[projData.sourceNPCIndex];
+                        if (candidate.active)
+                            sourceNPC = candidate;
+                    }
+                }
+            }
+            else if (isDirectNPCDamage)
+            {
+                NPC candidate = Main.npc[info.DamageSource.SourceNPCIndex];
+                if (candidate.active)
+                    sourceNPC = candidate;
+            }
+
+            if (sourceNPC != null)
+            {
+                CombatTracker.RecordEnemyDamage(sourceNPC, Player.whoAmI, info.Damage);
+
+                if (PhobiaData.NPCPhobiaMap.TryGetValue(sourceNPC.type, out List<PhobiaID> npcPhobias))
+                {
+                    foreach (PhobiaID phobia in npcPhobias)
                     {
                         if (HasDebuff(phobia, PhobiaDebuff.PhobiaDebuffID.TraumaticStrike))
                         {
                             if (Main.rand.NextFloat() < 0.2f)
-                            {
                                 Player.AddBuff(ModContent.BuffType<TraumaticStrike>(), 30 * 60);
-                            }
                             break;
                         }
                     }
 
-                    foreach (PhobiaID phobia in phobias)
-                    {
+                    foreach (PhobiaID phobia in npcPhobias)
                         AddFearPoints(phobia, fearPoints);
-                    }
-
-                    bonusMultiplier = 0f;
                 }
             }
+
+            CheckBiomePhobias(fearPoints);
+            CheckEventPhobiasOnHurt(fearPoints);
+            CheckBossPhobiasOnHurt(fearPoints);
+            CheckDebuffPhobiasOnHurt(fearPoints);
+
+            bool atSurface = Player.ZoneOverworldHeight || Player.ZoneSkyHeight;
+
+            if (Player.wet && !Player.lavaWet && !Player.honeyWet)
+                AddFearPoints(PhobiaID.Nerophobia, fearPoints);
+
+            if (Player.lavaWet)
+                AddFearPoints(PhobiaID.Ygrifotiaphobia, fearPoints);
+
+            int tileX = (int)(Player.Center.X / 16f);
+            int tileY = (int)(Player.Center.Y / 16f);
+            Color lightColor = Lighting.GetColor(tileX, tileY);
+            float brightness = (lightColor.R + lightColor.G + lightColor.B) / (255f * 3f);
+            if (brightness < 0.15f)
+                AddFearPoints(PhobiaID.Skotadiphobia, fearPoints);
+
+            if (atSurface && Main.dayTime)
+                AddFearPoints(PhobiaID.Imeraphobia, fearPoints);
+
+            if (atSurface && !Main.dayTime)
+                AddFearPoints(PhobiaID.Nychtaphobia, fearPoints);
+
+            bonusMultiplier = 0f;
+        }
+
+        // Biome tracker for generic damage
+        private void CheckBiomePhobias(int fearPoints)
+        {
+            if (Player.ZoneUnderworldHeight)
+            {
+                AddFearPoints(PhobiaID.Stygiophobia, fearPoints);
+                return;
+            }
+
+            if (Player.ZoneDungeon)
+                AddFearPoints(PhobiaID.Katakomvesphobia, fearPoints);
+
+            if (Player.ZoneLihzhardTemple)
+                AddFearPoints(PhobiaID.Archaioereipiophobia, fearPoints);
+
+            if (Player.ZoneNormalCaverns)
+                AddFearPoints(PhobiaID.Speluncaphobia, fearPoints);
+
+            if (Player.ZoneCorrupt)
+                AddFearPoints(PhobiaID.Kakigiphobia, fearPoints);
+
+            if (Player.ZoneCrimson)
+                AddFearPoints(PhobiaID.Hemophobia, fearPoints);
+
+            if (Player.ZoneHallow)
+                AddFearPoints(PhobiaID.Photophobia, fearPoints);
+
+            if (Player.ZoneJungle)
+                AddFearPoints(PhobiaID.Zounklaphobia, fearPoints);
+
+            if (Player.ZoneSnow)
+                AddFearPoints(PhobiaID.Chioniphobia, fearPoints);
+
+            if (Player.ZoneBeach)
+                AddFearPoints(PhobiaID.Thalassaphobia, fearPoints);
+
+            if (Player.ZoneDesert || Player.ZoneUndergroundDesert)
+                AddFearPoints(PhobiaID.Ammophobia, fearPoints);
+
+            if (Player.ZoneGlowshroom)
+                AddFearPoints(PhobiaID.Mycophobia, fearPoints);
+
+            if (Player.ZoneForest)
+                AddFearPoints(PhobiaID.Hylophobia, fearPoints);
+        }
+
+        private void CheckEventPhobiasOnHurt(int fearPoints)
+        {
+            foreach (PhobiaID phobia in GetActiveEventPhobias())
+                AddFearPoints(phobia, fearPoints);
+        }
+
+        private List<PhobiaID> GetActiveEventPhobias()
+        {
+            var active = new List<PhobiaID>();
+
+            bool atSurface = Player.ZoneOverworldHeight || Player.ZoneSkyHeight;
+            bool atOverworld = Player.ZoneOverworldHeight;
+            bool inInvasionRange = IsPlayerInInvasionRange();
+
+            if (atSurface)
+            {
+                if (Main.bloodMoon) active.Add(PhobiaID.Kakofengariphobia);
+                if (Main.raining) active.Add(PhobiaID.Ombrophobia);
+                if (Main.eclipse) active.Add(PhobiaID.Kosmikophobia);
+                if (Main.slimeRain) active.Add(PhobiaID.Gloiovrochiaphobia);
+            }
+
+            if (atOverworld && Player.ZoneSandstorm)
+                active.Add(PhobiaID.Ammothyellaphobia);
+
+            if (atOverworld)
+            {
+                if (Main.pumpkinMoon) active.Add(PhobiaID.Apokosmofengariphobia);
+                if (Main.snowMoon) active.Add(PhobiaID.Pagomenofengariphobia);
+            }
+
+            if (Player.ZoneOldOneArmy)
+                active.Add(PhobiaID.Archaiosstratosphobia);
+
+            if (Player.ZoneTowerNebula || Player.ZoneTowerSolar
+                || Player.ZoneTowerStardust || Player.ZoneTowerVortex)
+                active.Add(PhobiaID.Seliniakieisvoliphobia);
+
+            if (Main.invasionType != 0 && Main.invasionSize > 0 && inInvasionRange)
+            {
+                switch (Main.invasionType)
+                {
+                    case InvasionID.GoblinArmy:
+                        active.Add(PhobiaID.Eisvolikalikantzaronphobia); break;
+                    case InvasionID.SnowLegion:
+                        active.Add(PhobiaID.Psychrosstratosphobia); break;
+                    case InvasionID.PirateInvasion:
+                        active.Add(PhobiaID.Peiratikiepithesiphobia); break;
+                    case InvasionID.MartianMadness:
+                        active.Add(PhobiaID.Exogiiniparafrosyniphobia); break;
+                }
+            }
+
+            return active;
+        }
+
+        private void CheckBossPhobiasOnHurt(int fearPoints)
+        {
+            foreach (PhobiaID phobia in GetBossPhobiasInRange())
+                AddFearPoints(phobia, fearPoints);
+        }
+
+        private HashSet<PhobiaID> GetBossPhobiasInRange()
+        {
+            Rectangle detectionBounds = new Rectangle(
+                (int)Main.screenPosition.X,
+                (int)Main.screenPosition.Y,
+                Main.screenWidth,
+                Main.screenHeight);
+            detectionBounds.Inflate(5000, 5000);
+
+            var result = new HashSet<PhobiaID>();
+
+            for (int i = 0; i < Main.maxNPCs; i++)
+            {
+                NPC npc = Main.npc[i];
+
+                if (!npc.active)
+                    continue;
+
+                if (!npc.boss && NPCID.Sets.BossHeadTextures[npc.type] < 0)
+                    continue;
+
+                if (!npc.Hitbox.Intersects(detectionBounds))
+                    continue;
+
+                if (!PhobiaData.NPCPhobiaMap.TryGetValue(npc.type, out List<PhobiaID> phobias))
+                    continue;
+
+                foreach (PhobiaID phobia in phobias)
+                {
+                    if (PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition def)
+                        && def.type == PhobiaDefinition.PhobiaType.Boss)
+                    {
+                        result.Add(phobia);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private void CheckDebuffPhobiasOnHurt(int fearPoints)
+        {
+            foreach (PhobiaID phobia in GetActiveDebuffPhobias())
+                AddFearPoints(phobia, fearPoints);
+        }
+
+        private HashSet<PhobiaID> GetActiveDebuffPhobias()
+        {
+            var result = new HashSet<PhobiaID>();
+
+            foreach (var kvp in PhobiaData.DebuffPhobiaMap)
+            {
+                if (!Player.HasBuff(kvp.Key))
+                    continue;
+
+                foreach (PhobiaID phobia in kvp.Value)
+                    result.Add(phobia);
+            }
+
+            return result;
         }
 
         // Similar concept to the 'OnHurt' method, but we clear combat data and apply a flat 33% fear progression for applicable phobias
@@ -204,20 +622,169 @@ namespace ReignOfFear.Content.Systems.FearSystem
             if (damageSource.SourceNPCIndex >= 0 && damageSource.SourceNPCIndex < Main.maxNPCs)
             {
                 NPC sourceNPC = Main.npc[damageSource.SourceNPCIndex];
-                if (PhobiaData.NPCPhobiaMap.TryGetValue(sourceNPC.type, out List<PhobiaID> phobias))
+                if (sourceNPC.active)
                 {
-                    foreach (PhobiaID phobia in phobias)
-                    {
-                        PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
-                        int deathPenalty = playerPhobiaData[phobia].hasPhobia
-                            ? definition.postAcquisitionMax / 3
-                            : definition.preAcquisitionMax / 3;
-                        AddFearPoints(phobia, deathPenalty);
-                    }
-
+                    ApplyNPCDeathPenalty(sourceNPC);
+                    ApplyBiomeDeathPenalty();
+                    ApplyEventDeathPenalty();
+                    ApplyBossDeathPenalty();
+                    ApplyEnvironmentalDeathPenalty();
+                    ApplyDebuffDeathPenalty();
                     bonusMultiplier = 0f;
+                    return;
                 }
             }
+
+            if (damageSource.SourceProjectileLocalIndex >= 0
+                && damageSource.SourceProjectileLocalIndex < Main.maxProjectiles)
+            {
+                Projectile proj = Main.projectile[damageSource.SourceProjectileLocalIndex];
+                if (proj.active)
+                {
+                    var projData = proj.GetGlobalProjectile<FearGlobalProjectile>();
+
+                    if (projData.sourceNPCIndex == -2)
+                        return;
+
+                    if (projData.sourceNPCIndex >= 0)
+                    {
+                        NPC sourceNPC = Main.npc[projData.sourceNPCIndex];
+                        if (sourceNPC.active)
+                        {
+                            ApplyNPCDeathPenalty(sourceNPC);
+                            ApplyBiomeDeathPenalty();
+                            ApplyEventDeathPenalty();
+                            ApplyBossDeathPenalty();
+                            ApplyEnvironmentalDeathPenalty();
+                            ApplyDebuffDeathPenalty();
+                            bonusMultiplier = 0f;
+                            return;
+                        }
+                    }
+                }
+
+                ApplyBiomeDeathPenalty();
+                ApplyEventDeathPenalty();
+                ApplyBossDeathPenalty();
+                ApplyEnvironmentalDeathPenalty();
+                ApplyDebuffDeathPenalty();
+                bonusMultiplier = 0f;
+                return;
+            }
+
+            if (Player.wet && !Player.lavaWet && !Player.honeyWet)
+                ApplyDeathPenalty(PhobiaID.Nerophobia);
+
+            if (Player.lavaWet)
+                ApplyDeathPenalty(PhobiaID.Ygrifotiaphobia);
+
+            ApplyBiomeDeathPenalty();
+            ApplyEventDeathPenalty();
+            ApplyBossDeathPenalty();
+            ApplyEnvironmentalDeathPenalty();
+            ApplyDebuffDeathPenalty();
+            bonusMultiplier = 0f;
+        }
+
+        private void ApplyDeathPenalty(PhobiaID phobia)
+        {
+            PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
+            int penalty = playerPhobiaData[phobia].hasPhobia
+                ? definition.postAcquisitionMax / 3
+                : definition.preAcquisitionMax / 3;
+            AddFearPoints(phobia, penalty);
+        }
+
+        private void ApplyNPCDeathPenalty(NPC sourceNPC)
+        {
+            if (!PhobiaData.NPCPhobiaMap.TryGetValue(sourceNPC.type, out List<PhobiaID> phobias))
+                return;
+
+            foreach (PhobiaID phobia in phobias)
+                ApplyDeathPenalty(phobia);
+        }
+
+        // Helper method for applying death penalty to biome specific phobias
+        private void ApplyBiomeDeathPenalty()
+        {
+            if (Player.ZoneUnderworldHeight)
+            {
+                ApplyDeathPenalty(PhobiaID.Stygiophobia);
+                return;
+            }
+
+            if (Player.ZoneDungeon)
+                ApplyDeathPenalty(PhobiaID.Katakomvesphobia);
+
+            if (Player.ZoneLihzhardTemple)
+                ApplyDeathPenalty(PhobiaID.Archaioereipiophobia);
+
+            if (Player.ZoneNormalCaverns)
+                ApplyDeathPenalty(PhobiaID.Speluncaphobia);
+
+            if (Player.ZoneCorrupt)
+                ApplyDeathPenalty(PhobiaID.Kakigiphobia);
+
+            if (Player.ZoneCrimson)
+                ApplyDeathPenalty(PhobiaID.Hemophobia);
+
+            if (Player.ZoneHallow)
+                ApplyDeathPenalty(PhobiaID.Photophobia);
+
+            if (Player.ZoneJungle)
+                ApplyDeathPenalty(PhobiaID.Zounklaphobia);
+
+            if (Player.ZoneSnow)
+                ApplyDeathPenalty(PhobiaID.Chioniphobia);
+
+            if (Player.ZoneBeach)
+                ApplyDeathPenalty(PhobiaID.Thalassaphobia);
+
+            if (Player.ZoneDesert || Player.ZoneUndergroundDesert)
+                ApplyDeathPenalty(PhobiaID.Ammophobia);
+
+            if (Player.ZoneGlowshroom)
+                ApplyDeathPenalty(PhobiaID.Mycophobia);
+
+            if (Player.ZoneForest)
+                ApplyDeathPenalty(PhobiaID.Hylophobia);
+        }
+
+        private void ApplyEventDeathPenalty()
+        {
+            foreach (PhobiaID phobia in GetActiveEventPhobias())
+                ApplyDeathPenalty(phobia);
+        }
+
+        private void ApplyBossDeathPenalty()
+        {
+            foreach (PhobiaID phobia in GetBossPhobiasInRange())
+                ApplyDeathPenalty(phobia);
+        }
+
+        private void ApplyEnvironmentalDeathPenalty()
+        {
+            bool atSurface = Player.ZoneOverworldHeight || Player.ZoneSkyHeight;
+
+            int tileX = (int)(Player.Center.X / 16f);
+            int tileY = (int)(Player.Center.Y / 16f);
+            Color lightColor = Lighting.GetColor(tileX, tileY);
+            float brightness = (lightColor.R + lightColor.G + lightColor.B) / (255f * 3f);
+
+            if (brightness < 0.15f)
+                ApplyDeathPenalty(PhobiaID.Skotadiphobia);
+
+            if (atSurface && Main.dayTime)
+                ApplyDeathPenalty(PhobiaID.Imeraphobia);
+
+            if (atSurface && !Main.dayTime)
+                ApplyDeathPenalty(PhobiaID.Nychtaphobia);
+        }
+
+        private void ApplyDebuffDeathPenalty()
+        {
+            foreach (PhobiaID phobia in GetActiveDebuffPhobias())
+                ApplyDeathPenalty(phobia);
         }
 
         // Helper method that produces fear points from health damage
