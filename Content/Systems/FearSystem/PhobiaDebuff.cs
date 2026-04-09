@@ -46,8 +46,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 PhobiaDefinition.PhobiaType.Enemy,
                 new List<PhobiaDebuff>
                 {
-                    new PhobiaDebuff { id = PhobiaDebuffID.TerrorRadius, type = PhobiaDefinition.PhobiaType.Enemy, rank = 2 },
-                    new PhobiaDebuff { id = PhobiaDebuffID.TraumaticStrike, type = PhobiaDefinition.PhobiaType.Enemy, rank = 2 },
+
                 }
             }
         };

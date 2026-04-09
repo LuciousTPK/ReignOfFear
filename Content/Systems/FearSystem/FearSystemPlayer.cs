@@ -1,5 +1,4 @@
 ﻿using Microsoft.Xna.Framework;
-using ReignOfFear.Content.Systems.FearSystem.PlayerDebuffs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -299,19 +298,6 @@ namespace ReignOfFear.Content.Systems.FearSystem
             if (sourceNPC != null)
             {
                 CombatTracker.RecordEnemyDamage(sourceNPC, Player.whoAmI, info.Damage);
-
-                if (PhobiaData.NPCPhobiaMap.TryGetValue(sourceNPC.type, out List<PhobiaID> npcPhobiasForDebuff))
-                {
-                    foreach (PhobiaID phobia in npcPhobiasForDebuff)
-                    {
-                        if (HasDebuff(phobia, PhobiaDebuff.PhobiaDebuffID.TraumaticStrike))
-                        {
-                            if (Main.rand.NextFloat() < 0.2f)
-                                Player.AddBuff(ModContent.BuffType<TraumaticStrike>(), 30 * 60);
-                            break;
-                        }
-                    }
-                }
             }
 
             var fearPool = new HashSet<PhobiaID>();
@@ -341,7 +327,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
             {
                 var pool = new HashSet<PhobiaID>();
                 foreach (PhobiaID p in GetActiveBiomePhobias()) pool.Add(p);
-                foreach (PhobiaID p in GetActiveEventPhobias()) pool.Add(p);
+                foreach (PhobiaID p in GetActiveEventPhobias(true)) pool.Add(p);
                 foreach (PhobiaID p in GetBossPhobiasInRange()) pool.Add(p);
                 foreach (PhobiaID p in GetActiveDebuffPhobias()) pool.Add(p);
 
@@ -366,6 +352,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
                     if (PhobiaData.NPCPhobiaMap.TryGetValue(sourceNPC.type, out List<PhobiaID> npcPhobias))
                         foreach (PhobiaID p in npcPhobias) pool.Add(p);
 
+                    var filtered = FilterMaxedFear(FilterLockedPhobias(pool.ToList()));
                     ApplyDeathPenalty(FilterMaxedFear(FilterLockedPhobias(pool.ToList())));
                     bonusMultiplier = 0f;
                     return;
@@ -392,6 +379,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
                             if (PhobiaData.NPCPhobiaMap.TryGetValue(sourceNPC.type, out List<PhobiaID> npcPhobias))
                                 foreach (PhobiaID p in npcPhobias) pool.Add(p);
 
+                            var filtered = FilterMaxedFear(FilterLockedPhobias(pool.ToList()));
                             ApplyDeathPenalty(FilterMaxedFear(FilterLockedPhobias(pool.ToList())));
                             bonusMultiplier = 0f;
                             return;
@@ -421,7 +409,11 @@ namespace ReignOfFear.Content.Systems.FearSystem
         private void CheckEventTerrorRadius()
         {
             foreach (PhobiaID phobia in GetActiveEventPhobias())
+            {
+                if (phobia == PhobiaID.Ombrophobia || phobia == PhobiaID.Ammothyellaphobia)
+                    continue;
                 AddFearPoints(phobia, EVENT_BOSS_FEAR_PER_SECOND);
+            }
         }
 
         // Boss tracker to see if a player is in it's terror radius
@@ -482,9 +474,9 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
             return result;
         }
-        
+
         // Getter for events the player is actively in
-        private List<PhobiaID> GetActiveEventPhobias()
+        private List<PhobiaID> GetActiveEventPhobias(bool debugPrint = false)
         {
             var active = new List<PhobiaID>();
 
@@ -500,7 +492,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 if (Main.slimeRain) active.Add(PhobiaID.Gloiovrochiaphobia);
             }
 
-            if (atOverworld && Player.ZoneSandstorm)
+            if (atOverworld && Player.ZoneSandstorm && Player.ZoneDesert)
                 active.Add(PhobiaID.Ammothyellaphobia);
 
             if (atOverworld)
@@ -530,6 +522,8 @@ namespace ReignOfFear.Content.Systems.FearSystem
                         active.Add(PhobiaID.Exogiiniparafrosyniphobia); break;
                 }
             }
+
+            if (debugPrint)
 
             return active;
         }
@@ -670,7 +664,9 @@ namespace ReignOfFear.Content.Systems.FearSystem
                     (phobias[i], phobias[j]) = (phobias[j], phobias[i]);
                 }
                 for (int i = 0; i < totalPoints; i++)
+                {
                     AddFearPoints(phobias[i], 1);
+                }
                 return;
             }
 
@@ -716,9 +712,6 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
             if (!IsPhobiaUnlocked(phobia))
                 return;
-
-            bonusMultiplier += EnemyPhobiaEffects.ApplyTerrorRadius(Player, phobia);
-            bonusMultiplier += EnemyPhobiaEffects.ApplyTraumaticStrike(Player, phobia);
 
             points = (int)(points * (1 + bonusMultiplier));
 
@@ -818,7 +811,9 @@ namespace ReignOfFear.Content.Systems.FearSystem
                     (phobias[i], phobias[j]) = (phobias[j], phobias[i]);
                 }
                 for (int i = 0; i < totalPoints; i++)
+                {
                     AddCouragePoints(phobias[i], 1);
+                }
                 return;
             }
 
@@ -836,9 +831,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
                 int capacity;
                 if (!playerPhobiaData[phobia].hasPhobia)
-                {
                     capacity = playerPhobiaData[phobia].fearPoints;
-                }
                 else
                 {
                     PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition def);
@@ -1008,7 +1001,6 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
             int total = phobias.Count;
 
-            // Shuffle
             for (int i = phobias.Count - 1; i > 0; i--)
             {
                 int j = Main.rand.Next(i + 1);
@@ -1018,7 +1010,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
             for (int i = 0; i < phobias.Count; i++)
             {
                 PhobiaID phobia = phobias[i];
-                int p = phobias.Count - i; // phobias remaining including current
+                int p = phobias.Count - i;
 
                 PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition def);
                 int gaugeSize = playerPhobiaData[phobia].hasPhobia
@@ -1244,6 +1236,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
         private void AddPhobiaDebuff(PhobiaID phobia, int rank)
         {
             PhobiaDebuff debuff = SelectDebuff(phobia, rank);
+            if (debuff == null) return;
             playerPhobiaData[phobia].activeDebuffs.Add(debuff);
         }
 
@@ -1253,13 +1246,21 @@ namespace ReignOfFear.Content.Systems.FearSystem
             PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
             PhobiaDefinition.PhobiaType phobiaType = definition.type;
 
-            List<PhobiaDebuff> typeList = PhobiaDebuffData.typeDebuffs[phobiaType];
-            List<PhobiaDebuff> phobiaSpecificList = PhobiaDebuffData.phobiaSpecificDebuffs[phobia];
+            List<PhobiaDebuff> typeList = PhobiaDebuffData.typeDebuffs.ContainsKey(phobiaType)
+                ? PhobiaDebuffData.typeDebuffs[phobiaType]
+                : new List<PhobiaDebuff>();
 
-            List<PhobiaDebuff> typeFiltered = typeList.Where(debuff => debuff.rank == rank).ToList();
-            List<PhobiaDebuff> phobiaSpecificFiltered = phobiaSpecificList.Where(debuff => debuff.rank == rank).ToList();
+            List<PhobiaDebuff> phobiaSpecificList = PhobiaDebuffData.phobiaSpecificDebuffs.ContainsKey(phobia)
+                ? PhobiaDebuffData.phobiaSpecificDebuffs[phobia]
+                : new List<PhobiaDebuff>();
+
+            List<PhobiaDebuff> typeFiltered = typeList.Where(d => d.rank == rank).ToList();
+            List<PhobiaDebuff> phobiaSpecificFiltered = phobiaSpecificList.Where(d => d.rank == rank).ToList();
 
             List<PhobiaDebuff> combinedList = typeFiltered.Concat(phobiaSpecificFiltered).ToList();
+
+            if (combinedList.Count == 0) return null;
+
             return combinedList[Random.Shared.Next(0, combinedList.Count)];
         }
 

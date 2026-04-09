@@ -11,11 +11,6 @@ namespace ReignOfFear.Content.Systems.FearSystem
         public HashSet<int> PrimaryTypes;
     }
 
-    // ***IMPORTANT**
-    // NEED TO LOOK OVER VANILLA BOSSES/ENEMIES TO IDENTIFY SERVANT TYPE ENEMIES AND TIE THEM TOGETHER AS A SINGULAR
-    // COMBAT INSTANCE. THIS FILE IS INCOMPLETE, THIS LOGIC CURRENTLY JUST TRACKS BOSSES/ENEMIES ON THEIR OWN,
-    // NOT ENEMIES THAT ARE UNIQUE TO THE BOSS/ENEMY (IGNORE IF BOSS/ENEMY IS NOT UNIQUE TO THE ENEMY/BOSS IN QUESTION)!
-
     /// <summary>
     /// This is a helper class used to store the methods used to determine what a 'combat instance' is
     /// when talking about segmented enemies/bosses or bosses that in one way or another
