@@ -113,6 +113,8 @@ namespace ReignOfFear.Content.Systems.FearSystem
     {
         Dictionary<PhobiaID, PlayerPhobiaState> playerPhobiaData = new Dictionary<PhobiaID, PlayerPhobiaState>();
 
+        private HashSet<PhobiaID> unlockedPhobias = new HashSet<PhobiaID>();
+
         /// <remarks>
         /// Used to normalize fear progression through normal damage values
         /// The smaller the number the smaller the fear gained
@@ -163,6 +165,28 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 /// to play pretend for the time being
                 /// </remarks>
             }
+
+            foreach (PhobiaID phobia in Enum.GetValues<PhobiaID>())
+            {
+                if (IsPhobiaUnlocked(phobia)) { }
+            }
+        }
+
+        // Method to determine if a phobia prereq is met or not
+        public bool IsPhobiaUnlocked(PhobiaID phobia)
+        {
+            if (unlockedPhobias.Contains(phobia))
+                return true;
+
+            PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition def);
+
+            if (def.prerequisite == null || def.prerequisite(Player))
+            {
+                unlockedPhobias.Add(phobia);
+                return true;
+            }
+
+            return false;
         }
 
         // Currently used in order to update phobia progression that occurs via intervals and update interval timers
@@ -276,9 +300,9 @@ namespace ReignOfFear.Content.Systems.FearSystem
             {
                 CombatTracker.RecordEnemyDamage(sourceNPC, Player.whoAmI, info.Damage);
 
-                if (PhobiaData.NPCPhobiaMap.TryGetValue(sourceNPC.type, out List<PhobiaID> npcPhobias))
+                if (PhobiaData.NPCPhobiaMap.TryGetValue(sourceNPC.type, out List<PhobiaID> npcPhobiasForDebuff))
                 {
-                    foreach (PhobiaID phobia in npcPhobias)
+                    foreach (PhobiaID phobia in npcPhobiasForDebuff)
                     {
                         if (HasDebuff(phobia, PhobiaDebuff.PhobiaDebuffID.TraumaticStrike))
                         {
@@ -287,37 +311,21 @@ namespace ReignOfFear.Content.Systems.FearSystem
                             break;
                         }
                     }
-
-                    foreach (PhobiaID phobia in npcPhobias)
-                        AddFearPoints(phobia, fearPoints);
                 }
             }
 
-            foreach (PhobiaID phobia in GetActiveBiomePhobias()) AddFearPoints(phobia, fearPoints);
-            foreach (PhobiaID phobia in GetActiveEventPhobias()) AddFearPoints(phobia, fearPoints);
-            foreach (PhobiaID phobia in GetBossPhobiasInRange()) AddFearPoints(phobia, fearPoints);
-            foreach (PhobiaID phobia in GetActiveDebuffPhobias()) AddFearPoints(phobia, fearPoints);
+            var fearPool = new HashSet<PhobiaID>();
 
-            bool atSurface = Player.ZoneOverworldHeight || Player.ZoneSkyHeight;
+            if (sourceNPC != null
+                && PhobiaData.NPCPhobiaMap.TryGetValue(sourceNPC.type, out List<PhobiaID> npcPhobias))
+            {
+                foreach (PhobiaID p in npcPhobias) fearPool.Add(p);
+            }
 
-            if (Player.wet && !Player.lavaWet && !Player.honeyWet)
-                AddFearPoints(PhobiaID.Nerophobia, fearPoints);
+            foreach (PhobiaID p in GetPlayerStatePhobias()) fearPool.Add(p);
 
-            if (Player.lavaWet)
-                AddFearPoints(PhobiaID.Ygrifotiaphobia, fearPoints);
-
-            int tileX = (int)(Player.Center.X / 16f);
-            int tileY = (int)(Player.Center.Y / 16f);
-            Color lightColor = Lighting.GetColor(tileX, tileY);
-            float brightness = (lightColor.R + lightColor.G + lightColor.B) / (255f * 3f);
-            if (brightness < 0.15f)
-                AddFearPoints(PhobiaID.Skotadiphobia, fearPoints);
-
-            if (atSurface && Main.dayTime)
-                AddFearPoints(PhobiaID.Imeraphobia, fearPoints);
-
-            if (atSurface && !Main.dayTime)
-                AddFearPoints(PhobiaID.Nychtaphobia, fearPoints);
+            List<PhobiaID> filtered = FilterMaxedFear(FilterLockedPhobias(fearPool.ToList()));
+            DistributeFearPoints(filtered, fearPoints);
 
             bonusMultiplier = 0f;
         }
@@ -329,17 +337,36 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
             CombatTracker.OnPlayerDeath(Player.whoAmI);
 
+            HashSet<PhobiaID> BuildDeathPool()
+            {
+                var pool = new HashSet<PhobiaID>();
+                foreach (PhobiaID p in GetActiveBiomePhobias()) pool.Add(p);
+                foreach (PhobiaID p in GetActiveEventPhobias()) pool.Add(p);
+                foreach (PhobiaID p in GetBossPhobiasInRange()) pool.Add(p);
+                foreach (PhobiaID p in GetActiveDebuffPhobias()) pool.Add(p);
+
+                bool atSurface = Player.ZoneOverworldHeight || Player.ZoneSkyHeight;
+                int tileX = (int)(Player.Center.X / 16f);
+                int tileY = (int)(Player.Center.Y / 16f);
+                Color lightColor = Lighting.GetColor(tileX, tileY);
+                float brightness = (lightColor.R + lightColor.G + lightColor.B) / (255f * 3f);
+                if (brightness < 0.15f) pool.Add(PhobiaID.Skotadiphobia);
+                if (atSurface && Main.dayTime) pool.Add(PhobiaID.Imeraphobia);
+                if (atSurface && !Main.dayTime) pool.Add(PhobiaID.Nychtaphobia);
+
+                return pool;
+            }
+
             if (damageSource.SourceNPCIndex >= 0 && damageSource.SourceNPCIndex < Main.maxNPCs)
             {
                 NPC sourceNPC = Main.npc[damageSource.SourceNPCIndex];
                 if (sourceNPC.active)
                 {
-                    ApplyNPCDeathPenalty(sourceNPC);
-                    foreach (PhobiaID phobia in GetActiveBiomePhobias()) ApplyDeathPenalty(phobia);
-                    foreach (PhobiaID phobia in GetActiveEventPhobias()) ApplyDeathPenalty(phobia);
-                    foreach (PhobiaID phobia in GetBossPhobiasInRange()) ApplyDeathPenalty(phobia);
-                    foreach (PhobiaID phobia in GetActiveDebuffPhobias()) ApplyDeathPenalty(phobia);
-                    ApplyEnvironmentalDeathPenalty();
+                    var pool = BuildDeathPool();
+                    if (PhobiaData.NPCPhobiaMap.TryGetValue(sourceNPC.type, out List<PhobiaID> npcPhobias))
+                        foreach (PhobiaID p in npcPhobias) pool.Add(p);
+
+                    ApplyDeathPenalty(FilterMaxedFear(FilterLockedPhobias(pool.ToList())));
                     bonusMultiplier = 0f;
                     return;
                 }
@@ -361,38 +388,32 @@ namespace ReignOfFear.Content.Systems.FearSystem
                         NPC sourceNPC = Main.npc[projData.sourceNPCIndex];
                         if (sourceNPC.active)
                         {
-                            ApplyNPCDeathPenalty(sourceNPC);
-                            foreach (PhobiaID phobia in GetActiveBiomePhobias()) ApplyDeathPenalty(phobia);
-                            foreach (PhobiaID phobia in GetActiveEventPhobias()) ApplyDeathPenalty(phobia);
-                            foreach (PhobiaID phobia in GetBossPhobiasInRange()) ApplyDeathPenalty(phobia);
-                            foreach (PhobiaID phobia in GetActiveDebuffPhobias()) ApplyDeathPenalty(phobia);
-                            ApplyEnvironmentalDeathPenalty();
+                            var pool = BuildDeathPool();
+                            if (PhobiaData.NPCPhobiaMap.TryGetValue(sourceNPC.type, out List<PhobiaID> npcPhobias))
+                                foreach (PhobiaID p in npcPhobias) pool.Add(p);
+
+                            ApplyDeathPenalty(FilterMaxedFear(FilterLockedPhobias(pool.ToList())));
                             bonusMultiplier = 0f;
                             return;
                         }
                     }
                 }
 
-                foreach (PhobiaID phobia in GetActiveBiomePhobias()) ApplyDeathPenalty(phobia);
-                foreach (PhobiaID phobia in GetActiveEventPhobias()) ApplyDeathPenalty(phobia);
-                foreach (PhobiaID phobia in GetBossPhobiasInRange()) ApplyDeathPenalty(phobia);
-                foreach (PhobiaID phobia in GetActiveDebuffPhobias()) ApplyDeathPenalty(phobia);
-                ApplyEnvironmentalDeathPenalty();
+                var generalPool = BuildDeathPool();
+                ApplyDeathPenalty(FilterLockedPhobias(generalPool.ToList()));
                 bonusMultiplier = 0f;
                 return;
             }
 
+            var envPool = BuildDeathPool();
+
             if (Player.wet && !Player.lavaWet && !Player.honeyWet)
-                ApplyDeathPenalty(PhobiaID.Nerophobia);
+                envPool.Add(PhobiaID.Nerophobia);
 
             if (Player.lavaWet)
-                ApplyDeathPenalty(PhobiaID.Ygrifotiaphobia);
+                envPool.Add(PhobiaID.Ygrifotiaphobia);
 
-            foreach (PhobiaID phobia in GetActiveBiomePhobias()) ApplyDeathPenalty(phobia);
-            foreach (PhobiaID phobia in GetActiveEventPhobias()) ApplyDeathPenalty(phobia);
-            foreach (PhobiaID phobia in GetBossPhobiasInRange()) ApplyDeathPenalty(phobia);
-            foreach (PhobiaID phobia in GetActiveDebuffPhobias()) ApplyDeathPenalty(phobia);
-            ApplyEnvironmentalDeathPenalty();
+            ApplyDeathPenalty(FilterMaxedFear(FilterLockedPhobias(envPool.ToList())));
             bonusMultiplier = 0f;
         }
 
@@ -418,6 +439,20 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
             return Math.Abs(playerTileX - Main.spawnTileX) <= INVASION_HORIZONTAL_TILES
                    && playerTileY <= Main.worldSurface + INVASION_VERTICAL_TILES;
+        }
+
+        // Getter for all player state phobia getters
+        public List<PhobiaID> GetPlayerStatePhobias()
+        {
+            var result = new HashSet<PhobiaID>();
+
+            foreach (PhobiaID p in GetActiveBiomePhobias()) result.Add(p);
+            foreach (PhobiaID p in GetActiveEventPhobias()) result.Add(p);
+            foreach (PhobiaID p in GetBossPhobiasInRange()) result.Add(p);
+            foreach (PhobiaID p in GetActiveDebuffPhobias()) result.Add(p);
+            foreach (PhobiaID p in GetActiveEnvironmentalPhobias()) result.Add(p);
+
+            return result.ToList();
         }
 
         // Getter for biomes the player is actively in
@@ -557,6 +592,41 @@ namespace ReignOfFear.Content.Systems.FearSystem
             return result;
         }
 
+        // Getter for certain player enviromental states
+        private List<PhobiaID> GetActiveEnvironmentalPhobias()
+        {
+            var result = new List<PhobiaID>();
+
+            bool atSurface = Player.ZoneOverworldHeight || Player.ZoneSkyHeight;
+
+            if (Player.wet && !Player.lavaWet && !Player.honeyWet)
+                result.Add(PhobiaID.Nerophobia);
+
+            if (Player.lavaWet)
+                result.Add(PhobiaID.Ygrifotiaphobia);
+
+            int tileX = (int)(Player.Center.X / 16f);
+            int tileY = (int)(Player.Center.Y / 16f);
+            Color lightColor = Lighting.GetColor(tileX, tileY);
+            float brightness = (lightColor.R + lightColor.G + lightColor.B) / (255f * 3f);
+            if (brightness < 0.15f)
+                result.Add(PhobiaID.Skotadiphobia);
+
+            if (atSurface && Main.dayTime)
+                result.Add(PhobiaID.Imeraphobia);
+
+            if (atSurface && !Main.dayTime)
+                result.Add(PhobiaID.Nychtaphobia);
+
+            return result;
+        }
+
+        public List<PhobiaID> FilterLockedPhobias(List<PhobiaID> phobias)
+        {
+            phobias.RemoveAll(p => !IsPhobiaUnlocked(p));
+            return phobias;
+        }
+
         // Helper method that produces fear points from health damage
         private int CalculateFearProgression(int damage, int maxHP, int currentHP)
         {
@@ -565,6 +635,73 @@ namespace ReignOfFear.Content.Systems.FearSystem
             float fearPoints = normalizedDamage * healthModifier;
 
             return (int)Math.Floor(fearPoints);
+        }
+
+        // Filters out any phobias that already have max Fear points
+        private List<PhobiaID> FilterMaxedFear(IEnumerable<PhobiaID> phobias)
+        {
+            var result = new List<PhobiaID>();
+
+            foreach (PhobiaID phobia in phobias)
+            {
+                PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition def);
+                int cap = playerPhobiaData[phobia].hasPhobia
+                    ? def.postAcquisitionMax
+                    : def.preAcquisitionMax;
+
+                if (playerPhobiaData[phobia].fearPoints < cap)
+                    result.Add(phobia);
+            }
+
+            return result;
+        }
+
+        // Distributes the Fear among all applicable phobias at any given moment
+        private void DistributeFearPoints(List<PhobiaID> phobias, int totalPoints)
+        {
+            if (phobias.Count == 0 || totalPoints <= 0)
+                return;
+
+            if (totalPoints <= phobias.Count)
+            {
+                for (int i = phobias.Count - 1; i > 0; i--)
+                {
+                    int j = Main.rand.Next(i + 1);
+                    (phobias[i], phobias[j]) = (phobias[j], phobias[i]);
+                }
+                for (int i = 0; i < totalPoints; i++)
+                    AddFearPoints(phobias[i], 1);
+                return;
+            }
+
+            List<PhobiaID> remaining = new List<PhobiaID>(phobias);
+            int remainingPoints = totalPoints;
+
+            while (remaining.Count > 1)
+            {
+                int idx = Main.rand.Next(remaining.Count);
+                PhobiaID phobia = remaining[idx];
+                remaining.RemoveAt(idx);
+
+                int maxAssignable = remainingPoints - remaining.Count;
+                int assigned = Main.rand.Next(1, maxAssignable + 1);
+
+                PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition def);
+                int capacity = def.postAcquisitionMax - playerPhobiaData[phobia].fearPoints;
+
+                if (assigned > capacity)
+                {
+                    AddFearPoints(phobia, capacity);
+                    remainingPoints -= capacity;
+                    remainingPoints += (assigned - capacity);
+                }
+                else
+                {
+                    AddFearPoints(phobia, assigned);
+                    remainingPoints -= assigned;
+                }
+            }
+            AddFearPoints(remaining[0], remainingPoints);
         }
 
         // Contains all logic surrounding adding fear points to any phobia in the mod
@@ -576,6 +713,9 @@ namespace ReignOfFear.Content.Systems.FearSystem
             {
                 return;
             }
+
+            if (!IsPhobiaUnlocked(phobia))
+                return;
 
             bonusMultiplier += EnemyPhobiaEffects.ApplyTerrorRadius(Player, phobia);
             bonusMultiplier += EnemyPhobiaEffects.ApplyTraumaticStrike(Player, phobia);
@@ -638,6 +778,89 @@ namespace ReignOfFear.Content.Systems.FearSystem
             }
         }
 
+        // Filters out phobias that are already at max courage
+        public List<PhobiaID> FilterMaxedCourage(IEnumerable<PhobiaID> phobias)
+        {
+            var result = new List<PhobiaID>();
+
+            foreach (PhobiaID phobia in phobias)
+            {
+                var state = playerPhobiaData[phobia];
+
+                if (!state.hasPhobia)
+                {
+                    if (state.fearPoints > 0)
+                        result.Add(phobia);
+                }
+                else
+                {
+                    PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition def);
+                    bool fullyMaxed = state.fearPoints == 0 && state.couragePoints >= def.courageMax;
+                    if (!fullyMaxed)
+                        result.Add(phobia);
+                }
+            }
+
+            return result;
+        }
+
+        // Distributes courage to applicable phobias
+        public void DistributeCouragePoints(List<PhobiaID> phobias, int totalPoints)
+        {
+            if (phobias.Count == 0 || totalPoints <= 0)
+                return;
+
+            if (totalPoints <= phobias.Count)
+            {
+                for (int i = phobias.Count - 1; i > 0; i--)
+                {
+                    int j = Main.rand.Next(i + 1);
+                    (phobias[i], phobias[j]) = (phobias[j], phobias[i]);
+                }
+                for (int i = 0; i < totalPoints; i++)
+                    AddCouragePoints(phobias[i], 1);
+                return;
+            }
+
+            List<PhobiaID> remaining = new List<PhobiaID>(phobias);
+            int remainingPoints = totalPoints;
+
+            while (remaining.Count > 1)
+            {
+                int idx = Main.rand.Next(remaining.Count);
+                PhobiaID phobia = remaining[idx];
+                remaining.RemoveAt(idx);
+
+                int maxAssignable = remainingPoints - remaining.Count;
+                int assigned = Main.rand.Next(1, maxAssignable + 1);
+
+                int capacity;
+                if (!playerPhobiaData[phobia].hasPhobia)
+                {
+                    capacity = playerPhobiaData[phobia].fearPoints;
+                }
+                else
+                {
+                    PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition def);
+                    capacity = playerPhobiaData[phobia].fearPoints
+                               + (def.courageMax - playerPhobiaData[phobia].couragePoints);
+                }
+
+                if (assigned > capacity)
+                {
+                    AddCouragePoints(phobia, capacity);
+                    remainingPoints -= capacity;
+                    remainingPoints += (assigned - capacity);
+                }
+                else
+                {
+                    AddCouragePoints(phobia, assigned);
+                    remainingPoints -= assigned;
+                }
+            }
+            AddCouragePoints(remaining[0], remainingPoints);
+        }
+
         // Contains all logic surrounding adding courage points to any phobia in the mod
         public void AddCouragePoints(PhobiaID phobia, int points)
         {
@@ -645,6 +868,9 @@ namespace ReignOfFear.Content.Systems.FearSystem
             {
                 return;
             }
+
+            if (!IsPhobiaUnlocked(phobia))
+                return;
 
             if (!playerPhobiaData[phobia].hasPhobia)
             {
@@ -774,41 +1000,36 @@ namespace ReignOfFear.Content.Systems.FearSystem
             HandlePhobiaRank(phobia, calculatedRank);
         }
 
-        private void ApplyDeathPenalty(PhobiaID phobia)
+        // Applies a death penalty to applicable phobias
+        private void ApplyDeathPenalty(List<PhobiaID> phobias)
         {
-            PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
-            int penalty = playerPhobiaData[phobia].hasPhobia
-                ? definition.postAcquisitionMax / 3
-                : definition.preAcquisitionMax / 3;
-            AddFearPoints(phobia, penalty);
-        }
-
-        private void ApplyNPCDeathPenalty(NPC sourceNPC)
-        {
-            if (!PhobiaData.NPCPhobiaMap.TryGetValue(sourceNPC.type, out List<PhobiaID> phobias))
+            if (phobias.Count == 0)
                 return;
 
-            foreach (PhobiaID phobia in phobias)
-                ApplyDeathPenalty(phobia);
-        }
+            int total = phobias.Count;
 
-        private void ApplyEnvironmentalDeathPenalty()
-        {
-            bool atSurface = Player.ZoneOverworldHeight || Player.ZoneSkyHeight;
+            // Shuffle
+            for (int i = phobias.Count - 1; i > 0; i--)
+            {
+                int j = Main.rand.Next(i + 1);
+                (phobias[i], phobias[j]) = (phobias[j], phobias[i]);
+            }
 
-            int tileX = (int)(Player.Center.X / 16f);
-            int tileY = (int)(Player.Center.Y / 16f);
-            Color lightColor = Lighting.GetColor(tileX, tileY);
-            float brightness = (lightColor.R + lightColor.G + lightColor.B) / (255f * 3f);
+            for (int i = 0; i < phobias.Count; i++)
+            {
+                PhobiaID phobia = phobias[i];
+                int p = phobias.Count - i; // phobias remaining including current
 
-            if (brightness < 0.15f)
-                ApplyDeathPenalty(PhobiaID.Skotadiphobia);
+                PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition def);
+                int gaugeSize = playerPhobiaData[phobia].hasPhobia
+                    ? def.postAcquisitionMax
+                    : def.preAcquisitionMax;
 
-            if (atSurface && Main.dayTime)
-                ApplyDeathPenalty(PhobiaID.Imeraphobia);
+                float fraction = (1f / 3f) * ((float)p / total);
+                int penalty = Math.Max(1, (int)(fraction * gaugeSize));
 
-            if (atSurface && !Main.dayTime)
-                ApplyDeathPenalty(PhobiaID.Nychtaphobia);
+                AddFearPoints(phobia, penalty);
+            }
         }
 
         // Helper method that returns a phobia's player state

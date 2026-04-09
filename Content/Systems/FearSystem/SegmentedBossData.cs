@@ -49,6 +49,8 @@ namespace ReignOfFear.Content.Systems.FearSystem
         private static readonly HashSet<int> TwinTypes = new HashSet<int> { NPCID.Retinazer, NPCID.Spazmatism };
         private static readonly HashSet<int> GolemTypes = new HashSet<int> { NPCID.Golem, NPCID.GolemHead, NPCID.GolemFistLeft, NPCID.GolemFistRight, NPCID.GolemHeadFree };
         private static readonly HashSet<int> EaterTypes = new HashSet<int> { NPCID.EaterofWorldsHead, NPCID.EaterofWorldsBody, NPCID.EaterofWorldsTail };
+        private static readonly HashSet<int> BrainTypes = new HashSet<int> { NPCID.BrainofCthulhu, NPCID.Creeper };
+        private static readonly HashSet<int> PlanteraTypes = new HashSet<int> { NPCID.Plantera, NPCID.PlanterasHook };
 
         static SegmentedBossData()
         {
@@ -127,30 +129,44 @@ namespace ReignOfFear.Content.Systems.FearSystem
             return false;
         }
 
-        /// <remarks>
-        /// IsGolemType and TryGetGolemCombatKey are the first set of methods to contend with one of the three special vanilla
-        /// bosses. Since Golem's code is so broken and unworkable when accounting for 'multiple Golem instances', it has been
-        /// deemed impossible to actually track multiple Golems since base Terraria is not coded in a way for multiple to be
-        /// actually possible. For this reason, if a Golem component hits the player or gets hit, we simply scan all active
-        /// NPCs for Golem components and throw them all into a singular instance, regardless if there is only one or more
-        /// active Golems technically
-        /// </remarks>
-        public static bool IsGolemType(int npcType)
-        {
-            return GolemTypes.Contains(npcType);
-        }
+        public static bool IsGolemType(int npcType) => GolemTypes.Contains(npcType);
+
+        public static bool IsBrainType(int npcType) => BrainTypes.Contains(npcType);
+
+        public static bool IsPlanteraType(int npcType) => PlanteraTypes.Contains(npcType);
 
         public static bool TryGetGolemCombatKey(Dictionary<int, CombatData> activeCombats, out int existingKey)
         {
-            foreach (var kvp in activeCombats)
+            int whoAmI = NPC.golemBoss;
+            if (whoAmI >= 0 && whoAmI < Main.maxNPCs && activeCombats.ContainsKey(whoAmI))
             {
-                if (GolemTypes.Contains(kvp.Value.npcType))
-                {
-                    existingKey = kvp.Key;
-                    return true;
-                }
+                existingKey = whoAmI;
+                return true;
             }
+            existingKey = -1;
+            return false;
+        }
 
+        public static bool TryGetBrainCombatKey(Dictionary<int, CombatData> activeCombats, out int existingKey)
+        {
+            int whoAmI = NPC.crimsonBoss;
+            if (whoAmI >= 0 && whoAmI < Main.maxNPCs && activeCombats.ContainsKey(whoAmI))
+            {
+                existingKey = whoAmI;
+                return true;
+            }
+            existingKey = -1;
+            return false;
+        }
+
+        public static bool TryGetPlanteraCombatKey(Dictionary<int, CombatData> activeCombats, out int existingKey)
+        {
+            int whoAmI = NPC.plantBoss;
+            if (whoAmI >= 0 && whoAmI < Main.maxNPCs && activeCombats.ContainsKey(whoAmI))
+            {
+                existingKey = whoAmI;
+                return true;
+            }
             existingKey = -1;
             return false;
         }

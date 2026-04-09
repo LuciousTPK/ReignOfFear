@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using Terraria;
 using Terraria.ID;
 
 namespace ReignOfFear.Content.Systems.FearSystem
@@ -32,6 +34,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
         public int rank2Threshold;
         public int rank3Threshold;
 
+        public Func<Player, bool> prerequisite = null;
     }
 
     /// <summary>
@@ -69,53 +72,53 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
         // Boss Phobias — gauge 600
         { PhobiaID.Toichossarkasphobia,       new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
-        { PhobiaID.Didymamatiaphobia,         new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
-        { PhobiaID.Skoulikikatastrofeaphobia, new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
-        { PhobiaID.Metallikokraniophobia,     new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
+        { PhobiaID.Didymamatiaphobia,         new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400, prerequisite = (player) => Main.hardMode } },
+        { PhobiaID.Skoulikikatastrofeaphobia, new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400, prerequisite = (player) => Main.hardMode } },
+        { PhobiaID.Metallikokraniophobia,     new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400, prerequisite = (player) => Main.hardMode } },
         { PhobiaID.Iptamenokraniophobia,      new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
-        { PhobiaID.Agiasmeniglitsaphobia,     new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
+        { PhobiaID.Agiasmeniglitsaphobia,     new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400, prerequisite = (player) => Main.hardMode } },
         { PhobiaID.Vasilikimelissaphobia,     new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
-        { PhobiaID.Sarkofagofytophobia,       new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
-        { PhobiaID.Seliniakostheosphobia,     new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
-        { PhobiaID.Parafronproskynitisphobia, new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
+        { PhobiaID.Sarkofagofytophobia,       new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400, prerequisite = (player) => NPC.downedMechBoss1 && NPC.downedMechBoss2 && NPC.downedMechBoss3 } },
+        { PhobiaID.Seliniakostheosphobia,     new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400, prerequisite = (player) => NPC.downedAncientCultist } },
+        { PhobiaID.Parafronproskynitisphobia, new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400, prerequisite = (player) => NPC.downedGolemBoss } },
         { PhobiaID.Vasilikiglitsaphobia,      new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
-        { PhobiaID.Petrinimichaniphobia,      new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
+        { PhobiaID.Petrinimichaniphobia,      new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400, prerequisite = (player) => NPC.downedPlantBoss } },
         { PhobiaID.Matiterasphobia,           new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
-        { PhobiaID.Theatoufotosphobia,        new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
+        { PhobiaID.Theatoufotosphobia,        new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400, prerequisite = (player) => NPC.downedPlantBoss } },
         { PhobiaID.Katanalotisplanitiphobia,  new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
-        { PhobiaID.Psarigourouniphobia,       new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
+        { PhobiaID.Psarigourouniphobia,       new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400, prerequisite = (player) => Main.hardMode } },
         { PhobiaID.Kykloptikoelafiphobia,     new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
         { PhobiaID.Tromaktikomyalophobia,     new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Boss,  preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
 
         // Biome Phobias
-        { PhobiaID.Archaioereipiophobia, new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Biome,     preAcquisitionMax = 900, postAcquisitionMax = 900, courageMax = 450, conquerThreshold = 300, rank2Threshold = 300, rank3Threshold = 600 } },
+        { PhobiaID.Archaioereipiophobia, new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Biome,     preAcquisitionMax = 900, postAcquisitionMax = 900, courageMax = 450, conquerThreshold = 300, rank2Threshold = 300, rank3Threshold = 600, prerequisite = (player) => NPC.downedPlantBoss } },
         { PhobiaID.Chioniphobia,         new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Biome,     preAcquisitionMax = 900, postAcquisitionMax = 900, courageMax = 450, conquerThreshold = 300, rank2Threshold = 300, rank3Threshold = 600 } },
         { PhobiaID.Thalassaphobia,       new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Biome,     preAcquisitionMax = 900, postAcquisitionMax = 900, courageMax = 450, conquerThreshold = 300, rank2Threshold = 300, rank3Threshold = 600 } },
         { PhobiaID.Mycophobia,           new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Biome,     preAcquisitionMax = 900, postAcquisitionMax = 900, courageMax = 450, conquerThreshold = 300, rank2Threshold = 300, rank3Threshold = 600 } },
         { PhobiaID.Zounklaphobia,        new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Biome,     preAcquisitionMax = 900, postAcquisitionMax = 900, courageMax = 450, conquerThreshold = 300, rank2Threshold = 300, rank3Threshold = 600 } },
         { PhobiaID.Stygiophobia,         new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Biome,     preAcquisitionMax = 900, postAcquisitionMax = 900, courageMax = 450, conquerThreshold = 300, rank2Threshold = 300, rank3Threshold = 600 } },
-        { PhobiaID.Photophobia,          new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Biome,     preAcquisitionMax = 900, postAcquisitionMax = 900, courageMax = 450, conquerThreshold = 300, rank2Threshold = 300, rank3Threshold = 600 } },
+        { PhobiaID.Photophobia,          new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Biome,     preAcquisitionMax = 900, postAcquisitionMax = 900, courageMax = 450, conquerThreshold = 300, rank2Threshold = 300, rank3Threshold = 600, prerequisite = (player) => Main.hardMode } },
         { PhobiaID.Hylophobia,           new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Biome,     preAcquisitionMax = 900, postAcquisitionMax = 900, courageMax = 450, conquerThreshold = 300, rank2Threshold = 300, rank3Threshold = 600 } },
-        { PhobiaID.Katakomvesphobia,     new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Biome,     preAcquisitionMax = 900, postAcquisitionMax = 900, courageMax = 450, conquerThreshold = 300, rank2Threshold = 300, rank3Threshold = 600 } },
+        { PhobiaID.Katakomvesphobia,     new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Biome,     preAcquisitionMax = 900, postAcquisitionMax = 900, courageMax = 450, conquerThreshold = 300, rank2Threshold = 300, rank3Threshold = 600, prerequisite = (player) => NPC.downedBoss3 } },
         { PhobiaID.Ammophobia,           new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Biome,     preAcquisitionMax = 900, postAcquisitionMax = 900, courageMax = 450, conquerThreshold = 300, rank2Threshold = 300, rank3Threshold = 600 } },
         { PhobiaID.Hemophobia,           new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Biome,     preAcquisitionMax = 900, postAcquisitionMax = 900, courageMax = 450, conquerThreshold = 300, rank2Threshold = 300, rank3Threshold = 600 } },
         { PhobiaID.Kakigiphobia,         new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Biome,     preAcquisitionMax = 900, postAcquisitionMax = 900, courageMax = 450, conquerThreshold = 300, rank2Threshold = 300, rank3Threshold = 600 } },
         { PhobiaID.Speluncaphobia,       new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Biome,     preAcquisitionMax = 900, postAcquisitionMax = 900, courageMax = 450, conquerThreshold = 300, rank2Threshold = 300, rank3Threshold = 600 } },
 
         // Event Phobias
-        { PhobiaID.Kakofengariphobia,          new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
-        { PhobiaID.Psychrosstratosphobia,      new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
-        { PhobiaID.Pagomenofengariphobia,      new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
+        { PhobiaID.Kakofengariphobia,          new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400, prerequisite = (player) => player.statLifeMax2 >= 120 } },
+        { PhobiaID.Psychrosstratosphobia,      new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400, prerequisite = (player) => Main.hardMode && player.statLifeMax2 >= 200 } },
+        { PhobiaID.Pagomenofengariphobia,      new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400, prerequisite = (player) => NPC.downedPlantBoss } },
         { PhobiaID.Eisvolikalikantzaronphobia, new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
-        { PhobiaID.Seliniakieisvoliphobia,     new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
-        { PhobiaID.Exogiiniparafrosyniphobia,  new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
-        { PhobiaID.Archaiosstratosphobia,      new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
-        { PhobiaID.Peiratikiepithesiphobia,    new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
-        { PhobiaID.Apokosmofengariphobia,      new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
+        { PhobiaID.Seliniakieisvoliphobia,     new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400, prerequisite = (player) => NPC.downedAncientCultist } },
+        { PhobiaID.Exogiiniparafrosyniphobia,  new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400, prerequisite = (player) => NPC.downedGolemBoss } },
+        { PhobiaID.Archaiosstratosphobia,      new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400, prerequisite = (player) => NPC.downedBoss2 } },
+        { PhobiaID.Peiratikiepithesiphobia,    new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400, prerequisite = (player) => Main.hardMode } },
+        { PhobiaID.Apokosmofengariphobia,      new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400, prerequisite = (player) => NPC.downedPlantBoss } },
         { PhobiaID.Ombrophobia,                new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
         { PhobiaID.Ammothyellaphobia,          new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
-        { PhobiaID.Gloiovrochiaphobia,         new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
-        { PhobiaID.Kosmikophobia,              new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400 } },
+        { PhobiaID.Gloiovrochiaphobia,         new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400, prerequisite = (player) => player.statLifeMax2 > 140 && player.statDefense > 8 } },
+        { PhobiaID.Kosmikophobia,              new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Event, preAcquisitionMax = 600, postAcquisitionMax = 600, courageMax = 300, conquerThreshold = 200, rank2Threshold = 200, rank3Threshold = 400, prerequisite = (player) => NPC.downedMechBossAny } },
 
         // Debuff Phobias
         { PhobiaID.Spasmeniamynaphobia,  new PhobiaDefinition { type = PhobiaDefinition.PhobiaType.Debuff,    preAcquisitionMax = 300, postAcquisitionMax = 300, courageMax = 150, conquerThreshold = 100, rank2Threshold = 100, rank3Threshold = 200 } },
@@ -231,7 +234,6 @@ namespace ReignOfFear.Content.Systems.FearSystem
             { NPCID.Clinger,                     new List<PhobiaID> { PhobiaID.Sarcophobia, PhobiaID.Kakigiphobia, PhobiaID.Speluncaphobia } },
             { NPCID.Clown,                       new List<PhobiaID> { PhobiaID.Anthropophobia, PhobiaID.Kakofengariphobia } },
             { NPCID.CochinealBeetle,             new List<PhobiaID> { PhobiaID.Entomophobia, PhobiaID.Speluncaphobia } },
-            { NPCID.SolarCorite,                 new List<PhobiaID> { PhobiaID.Allotriophobia, PhobiaID.Seliniakieisvoliphobia } },
             { NPCID.CorruptBunny,                new List<PhobiaID> { PhobiaID.Sarcophobia, PhobiaID.Zoophobia, PhobiaID.Kakofengariphobia, PhobiaID.Kakigiphobia } },
             { NPCID.CorruptGoldfish,             new List<PhobiaID> { PhobiaID.Sarcophobia, PhobiaID.Ichthyophobia, PhobiaID.Kakofengariphobia, PhobiaID.Kakigiphobia } },
             { NPCID.CorruptPenguin,              new List<PhobiaID> { PhobiaID.Sarcophobia, PhobiaID.Zoophobia, PhobiaID.Kakofengariphobia, PhobiaID.Kakigiphobia } },

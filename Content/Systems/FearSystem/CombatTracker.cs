@@ -206,6 +206,42 @@ namespace ReignOfFear.Content.Systems.FearSystem
                     npcKey = npc.whoAmI;
                 }
             }
+            else if (SegmentedBossData.IsBrainType(npc.type))
+            {
+                if (SegmentedBossData.TryGetBrainCombatKey(activeCombats, out int brainKey))
+                {
+                    npcKey = brainKey;
+                }
+                else if (npc.type == NPCID.BrainofCthulhu)
+                {
+                    npcKey = npc.whoAmI;
+                }
+                else
+                {
+                    int crimsonWhoAmI = NPC.crimsonBoss;
+                    npcKey = (crimsonWhoAmI >= 0 && crimsonWhoAmI < Main.maxNPCs)
+                        ? crimsonWhoAmI
+                        : npc.whoAmI;
+                }
+            }
+            else if (SegmentedBossData.IsPlanteraType(npc.type))
+            {
+                if (SegmentedBossData.TryGetPlanteraCombatKey(activeCombats, out int planteraKey))
+                {
+                    npcKey = planteraKey;
+                }
+                else if (npc.type == NPCID.Plantera)
+                {
+                    npcKey = npc.whoAmI;
+                }
+                else
+                {
+                    int plantWhoAmI = NPC.plantBoss;
+                    npcKey = (plantWhoAmI >= 0 && plantWhoAmI < Main.maxNPCs)
+                        ? plantWhoAmI
+                        : npc.whoAmI;
+                }
+            }
             else if (SegmentedBossData.IsTwinType(npc.type))
             {
                 if (SegmentedBossData.IsNPCPaired(npc.whoAmI, out int existingKey))
@@ -377,6 +413,42 @@ namespace ReignOfFear.Content.Systems.FearSystem
                     npcKey = npc.whoAmI;
                 }
             }
+            else if (SegmentedBossData.IsBrainType(npc.type))
+            {
+                if (SegmentedBossData.TryGetBrainCombatKey(activeCombats, out int brainKey))
+                {
+                    npcKey = brainKey;
+                }
+                else if (npc.type == NPCID.BrainofCthulhu)
+                {
+                    npcKey = npc.whoAmI;
+                }
+                else
+                {
+                    int crimsonWhoAmI = NPC.crimsonBoss;
+                    npcKey = (crimsonWhoAmI >= 0 && crimsonWhoAmI < Main.maxNPCs)
+                        ? crimsonWhoAmI
+                        : npc.whoAmI;
+                }
+            }
+            else if (SegmentedBossData.IsPlanteraType(npc.type))
+            {
+                if (SegmentedBossData.TryGetPlanteraCombatKey(activeCombats, out int planteraKey))
+                {
+                    npcKey = planteraKey;
+                }
+                else if (npc.type == NPCID.Plantera)
+                {
+                    npcKey = npc.whoAmI;
+                }
+                else
+                {
+                    int plantWhoAmI = NPC.plantBoss;
+                    npcKey = (plantWhoAmI >= 0 && plantWhoAmI < Main.maxNPCs)
+                        ? plantWhoAmI
+                        : npc.whoAmI;
+                }
+            }
             else if (SegmentedBossData.IsTwinType(npc.type))
             {
                 if (SegmentedBossData.IsNPCPaired(npc.whoAmI, out int existingKey))
@@ -544,6 +616,21 @@ namespace ReignOfFear.Content.Systems.FearSystem
                     combat.totalMaxHP += damageTaken;
                 }
             }
+            else if (SegmentedBossData.IsBrainType(npc.type))
+            {
+                if (npc.type == NPCID.BrainofCthulhu)
+                {
+                    shouldAwardCourage = true;
+                }
+                else
+                {
+                    return;
+                }
+            }
+            else if (SegmentedBossData.IsPlanteraType(npc.type))
+            {
+                shouldAwardCourage = true;
+            }
             else if (SegmentedBossData.IsEaterType(npc.type))
             {
                 bool allDead = combat.pairedNPCs.All(whoAmI => combat.deadComponents.Contains(whoAmI));
@@ -613,14 +700,17 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
                     int courageAwarded = CalculateCourage(combat, player, combat.totalMaxHP);
 
-                    if (PhobiaData.NPCPhobiaMap.TryGetValue(npc.type, out List<PhobiaID> phobias))
-                    {
-                        FearSystemPlayer modPlayer = player.GetModPlayer<FearSystemPlayer>();
-                        foreach (PhobiaID phobia in phobias)
-                        {
-                            modPlayer.AddCouragePoints(phobia, courageAwarded);
-                        }
-                    }
+                    FearSystemPlayer modPlayer = player.GetModPlayer<FearSystemPlayer>();
+
+                    var couragePool = new HashSet<PhobiaID>();
+
+                    if (PhobiaData.NPCPhobiaMap.TryGetValue(npc.type, out List<PhobiaID> npcPhobias))
+                        foreach (PhobiaID p in npcPhobias) couragePool.Add(p);
+
+                    foreach (PhobiaID p in modPlayer.GetPlayerStatePhobias()) couragePool.Add(p);
+
+                    List<PhobiaID> filtered = modPlayer.FilterMaxedCourage(modPlayer.FilterLockedPhobias(couragePool.ToList()));
+                    modPlayer.DistributeCouragePoints(filtered, courageAwarded);
                 }
 
                 if (combat.pairedNPCs.Count > 0)
