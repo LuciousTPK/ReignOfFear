@@ -81,6 +81,7 @@ namespace ReignOfFear.Content.Commands
                             {
                                 player.GetPhobiaState(phobia).fearPoints = 0;
                                 player.GetPhobiaState(phobia).hasPhobia = true;
+                                player.RecalculateSetRank(PhobiaData.Definitions[phobia].set);
                                 caller.Reply("Giving " + phobia.ToString() + " to player!", Color.Yellow);
                                 break;
                             }
@@ -132,6 +133,7 @@ namespace ReignOfFear.Content.Commands
                                 player.GetPhobiaState(phobia).currentRank = 1;
                                 player.GetPhobiaState(phobia).isBurden = false;
                                 player.GetPhobiaState(phobia).hasPhobia = false;
+                                player.RecalculateSetRank(PhobiaData.Definitions[phobia].set);
                                 caller.Reply("Removing " + phobia.ToString() + " from player!", Color.Yellow);
                                 break;
                             }

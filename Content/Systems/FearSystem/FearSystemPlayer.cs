@@ -111,6 +111,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
     internal class FearSystemPlayer : ModPlayer
     {
         Dictionary<PhobiaID, PlayerPhobiaState> playerPhobiaData = new Dictionary<PhobiaID, PlayerPhobiaState>();
+        private Dictionary<SetID, PlayerSetState> playerSetData = new Dictionary<SetID, PlayerSetState>();
 
         private HashSet<PhobiaID> unlockedPhobias = new HashSet<PhobiaID>();
 
@@ -163,6 +164,11 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 /// such a saving method has yet to be created so we are just going to have
                 /// to play pretend for the time being
                 /// </remarks>
+            }
+
+            foreach (SetID set in Enum.GetValues<SetID>())
+            {
+                playerSetData[set] = new PlayerSetState();
             }
 
             foreach (PhobiaID phobia in Enum.GetValues<PhobiaID>())
@@ -522,9 +528,6 @@ namespace ReignOfFear.Content.Systems.FearSystem
                         active.Add(PhobiaID.Exogiiniparafrosyniphobia); break;
                 }
             }
-
-            if (debugPrint)
-
             return active;
         }
 
@@ -767,6 +770,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
 
                     int calculatedRank = CalculateRank(definition, playerPhobiaData[phobia].fearPoints, playerPhobiaData[phobia].currentRank, true);
                     HandlePhobiaRank(phobia, calculatedRank);
+                    RecalculateSetRank(PhobiaData.Definitions[phobia].set);
                 }
             }
         }
@@ -959,6 +963,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 {
                     playerPhobiaData[phobia].fearPoints = playerPhobiaData[phobia].fearPoints - definition.preAcquisitionMax;
                     playerPhobiaData[phobia].hasPhobia = true;
+                    RecalculateSetRank(PhobiaData.Definitions[phobia].set);
 
                     if (playerPhobiaData[phobia].fearPoints > definition.postAcquisitionMax)
                     {
@@ -1269,6 +1274,44 @@ namespace ReignOfFear.Content.Systems.FearSystem
         {
             PhobiaDebuff debuff = playerPhobiaData[phobia].activeDebuffs.FirstOrDefault(activeDebuff => activeDebuff.rank == rank);
             playerPhobiaData[phobia].activeDebuffs.Remove(debuff);
+        }
+
+        // Calculates the rank of a set when a phobia is obtained
+        public void RecalculateSetRank(SetID setID)
+        {
+            int count = 0;
+            foreach (var kvp in PhobiaData.Definitions)
+            {
+                if (kvp.Value.set == setID && playerPhobiaData[kvp.Key].hasPhobia)
+                    count++;
+            }
+
+            PhobiaSetData.Definitions.TryGetValue(setID, out PhobiaSet def);
+
+            int newRank = 0;
+            if (count >= def.rank3Threshold) newRank = 3;
+            else if (count >= def.rank2Threshold) newRank = 2;
+            else if (count >= def.rank1Threshold) newRank = 1;
+
+            playerSetData[setID].currentRank = newRank;
+        }
+
+        // Returns the current rank of a set
+        public int GetSetRank(SetID setID)
+        {
+            return playerSetData[setID].currentRank;
+        }
+
+        // Returns how many phobias the player currently has in a given set
+        public int GetSetPhobiaCount(SetID setID)
+        {
+            int count = 0;
+            foreach (var kvp in PhobiaData.Definitions)
+            {
+                if (kvp.Value.set == setID && playerPhobiaData[kvp.Key].hasPhobia)
+                    count++;
+            }
+            return count;
         }
     }
 }

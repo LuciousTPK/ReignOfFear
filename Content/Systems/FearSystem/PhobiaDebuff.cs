@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using static ReignOfFear.Content.Systems.FearSystem.PhobiaDebuff;
 
 namespace ReignOfFear.Content.Systems.FearSystem
 {

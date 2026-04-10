@@ -1,9 +1,4 @@
-﻿using Microsoft.Xna.Framework;
-using System.Collections.Generic;
-using Terraria;
-using Terraria.ModLoader;
-
-namespace ReignOfFear.Content.Systems.FearSystem
+﻿namespace ReignOfFear.Content.Systems.FearSystem
 {
     /// <summary>
     /// This file is meant to contain, to the best of its abilities, every effect that can be
