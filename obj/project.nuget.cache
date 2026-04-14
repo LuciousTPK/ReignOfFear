@@ -1,8 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "gojju9pbtrs=",
+  "dgSpecHash": "zBHakU4hygA=",
   "success": true,
-  "projectFilePath": "C:\\Users\\Devin Turley\\Documents\\My Games\\Terraria\\tModLoader\\ModSources\\ReignOfFear\\ReignOfFear.csproj",
-  "expectedPackageFiles": [],
+  "projectFilePath": "C:\\Users\\lucio\\OneDrive\\Documents\\My Games\\Terraria\\tModLoader\\ModSources\\ReignOfFear\\ReignOfFear.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\lucio\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.22\\microsoft.windowsdesktop.app.ref.8.0.22.nupkg.sha512",
+    "C:\\Users\\lucio\\.nuget\\packages\\microsoft.netcore.app.ref\\8.0.22\\microsoft.netcore.app.ref.8.0.22.nupkg.sha512",
+    "C:\\Users\\lucio\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.22\\microsoft.aspnetcore.app.ref.8.0.22.nupkg.sha512"
+  ],
   "logs": []
 }

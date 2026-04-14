@@ -6,6 +6,7 @@ using Terraria;
 using Terraria.DataStructures;
 using Terraria.ID;
 using Terraria.ModLoader;
+using Terraria.ModLoader.IO;
 
 namespace ReignOfFear.Content.Systems.FearSystem
 {
@@ -157,13 +158,6 @@ namespace ReignOfFear.Content.Systems.FearSystem
             foreach (PhobiaID phobia in Enum.GetValues<PhobiaID>())
             {
                 playerPhobiaData[phobia] = new PlayerPhobiaState();
-                
-                /// <remarks>
-                /// We'd probably have some line here that would load PlayerPhobiaState
-                /// data from some data base meant to contain saved phobia data, however
-                /// such a saving method has yet to be created so we are just going to have
-                /// to play pretend for the time being
-                /// </remarks>
             }
 
             foreach (SetID set in Enum.GetValues<SetID>())
@@ -175,6 +169,80 @@ namespace ReignOfFear.Content.Systems.FearSystem
             {
                 if (IsPhobiaUnlocked(phobia)) { }
             }
+        }
+
+        // Saves Player phobia data
+        public override void SaveData(TagCompound tag)
+        {
+            var unlockedList = new List<string>();
+            foreach (PhobiaID phobia in unlockedPhobias)
+                unlockedList.Add(phobia.ToString());
+            tag["unlockedPhobias"] = unlockedList;
+
+            foreach (PhobiaID phobia in Enum.GetValues<PhobiaID>())
+            {
+                PlayerPhobiaState state = playerPhobiaData[phobia];
+
+                if (!state.hasPhobia && state.fearPoints == 0 && state.couragePoints == 0)
+                    continue;
+
+                string key = phobia.ToString();
+                tag[key + ".hasPhobia"] = state.hasPhobia;
+                tag[key + ".isBurden"] = state.isBurden;
+                tag[key + ".fearPoints"] = state.fearPoints;
+                tag[key + ".couragePoints"] = state.couragePoints;
+                tag[key + ".currentRank"] = state.currentRank;
+            }
+        }
+
+        // Loads Player phobia data
+        public override void LoadData(TagCompound tag)
+        {
+            unlockedPhobias.Clear();
+            if (tag.ContainsKey("unlockedPhobias"))
+            {
+                var unlockedList = tag.GetList<string>("unlockedPhobias");
+                foreach (string name in unlockedList)
+                {
+                    if (Enum.TryParse(name, true, out PhobiaID phobia))
+                        unlockedPhobias.Add(phobia);
+                }
+            }
+
+            foreach (PhobiaID phobia in Enum.GetValues<PhobiaID>())
+            {
+                string key = phobia.ToString();
+
+                if (!tag.ContainsKey(key + ".hasPhobia"))
+                    continue;
+
+                PlayerPhobiaState state = playerPhobiaData[phobia];
+                state.hasPhobia = tag.GetBool(key + ".hasPhobia");
+                state.isBurden = tag.GetBool(key + ".isBurden");
+                state.fearPoints = tag.GetInt(key + ".fearPoints");
+                state.couragePoints = tag.GetInt(key + ".couragePoints");
+                state.currentRank = tag.GetInt(key + ".currentRank");
+
+                if (state.hasPhobia && state.currentRank > 1)
+                {
+                    for (int rank = 2; rank <= Math.Min(state.currentRank, 3); rank++)
+                    {
+                        PhobiaDebuff debuff = SelectDebuff(phobia, rank);
+                        if (debuff != null)
+                            state.activeDebuffs.Add(debuff);
+                    }
+                }
+
+                if (state.isBurden && !state.activeDebuffs.Any(d => d.rank == 4))
+                {
+                    PhobiaDebuff debuff = SelectDebuff(phobia, 4);
+                    if (debuff != null)
+                        state.activeDebuffs.Add(debuff);
+                }
+            }
+
+            foreach (SetID set in Enum.GetValues<SetID>())
+                RecalculateSetRank(set);
         }
 
         // Method to determine if a phobia prereq is met or not
@@ -320,6 +388,81 @@ namespace ReignOfFear.Content.Systems.FearSystem
             DistributeFearPoints(filtered, fearPoints);
 
             bonusMultiplier = 0f;
+        }
+
+        // Currently used to add damage amplifiers depending on the player phobia state
+        public override void ModifyHurt(ref Player.HurtModifiers modifiers)
+        {
+            float diffMult = 1f;
+            if (Main.masterMode) diffMult = 2.67f;
+            else if (Main.expertMode) diffMult = 1.45f;
+
+            int totalPhobias = GetTotalPhobiaCount();
+
+            int afflictionsRank = GetSetRank(SetID.Afflictions);
+            if (afflictionsRank > 0)
+            {
+                bool hasAnyMappedDebuff = false;
+                foreach (var kvp in PhobiaData.DebuffPhobiaMap)
+                {
+                    if (Player.HasBuff(kvp.Key))
+                    {
+                        hasAnyMappedDebuff = true;
+                        break;
+                    }
+                }
+
+                if (hasAnyMappedDebuff)
+                {
+                    float damageAmp = Math.Min(
+                        afflictionsRank * 0.010f * diffMult * totalPhobias, 1.0f);
+                    modifiers.IncomingDamageMultiplier *= (1f + damageAmp);
+                }
+            }
+
+            int natureRank = GetSetRank(SetID.Nature);
+            if (natureRank > 0)
+            {
+                bool atSurface = Player.ZoneOverworldHeight || Player.ZoneSkyHeight;
+                if (atSurface)
+                {
+                    float damageAmp = Math.Min(
+                        natureRank * 0.010f * diffMult * totalPhobias, 1.0f);
+                    modifiers.IncomingDamageMultiplier *= (1f + damageAmp);
+                }
+            }
+
+            int undergroundRank = GetSetRank(SetID.Underground);
+            if (undergroundRank > 0)
+            {
+                int tileX = (int)(Player.Center.X / 16f);
+                int tileY = (int)(Player.Center.Y / 16f);
+                Color lightColor = Lighting.GetColor(tileX, tileY);
+                float brightness = (lightColor.R + lightColor.G + lightColor.B) / (255f * 3f);
+
+                if (brightness < 0.15f)
+                {
+                    float damageAmp = Math.Min(
+                        undergroundRank * 0.010f * diffMult * totalPhobias, 1.0f);
+                    modifiers.IncomingDamageMultiplier *= (1f + damageAmp);
+                }
+            }
+
+            int oceanRank = GetSetRank(SetID.Ocean);
+            if (oceanRank > 0 && Player.wet && !Player.lavaWet && !Player.honeyWet)
+            {
+                float damageAmp = Math.Min(
+                    oceanRank * 0.010f * diffMult * totalPhobias, 1.0f);
+                modifiers.IncomingDamageMultiplier *= (1f + damageAmp);
+            }
+
+            int hellRank = GetSetRank(SetID.Hell);
+            if (hellRank > 0 && Player.lavaWet)
+            {
+                float damageAmp = Math.Min(
+                    hellRank * 0.010f * diffMult * totalPhobias, 1.0f);
+                modifiers.IncomingDamageMultiplier *= (1f + damageAmp);
+            }
         }
 
         // Similar concept to the 'OnHurt' method, but we clear combat data and apply a flat 33% fear progression for applicable phobias
@@ -889,6 +1032,12 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 {
                     playerPhobiaData[phobia].couragePoints = definition.courageMax;
                 }
+
+                if (playerPhobiaData[phobia].couragePoints >= definition.courageMax)
+                {
+                    ConquerPhobia(phobia);
+                    return;
+                }
             }
 
             else
@@ -908,11 +1057,44 @@ namespace ReignOfFear.Content.Systems.FearSystem
                     {
                         playerPhobiaData[phobia].couragePoints = definition.courageMax;
                     }
+
+                    if (playerPhobiaData[phobia].couragePoints >= definition.courageMax)
+                    {
+                        ConquerPhobia(phobia);
+                        return;
+                    }
                 }
             }
 
             int calculatedRank = CalculateRank(definition, playerPhobiaData[phobia].fearPoints, playerPhobiaData[phobia].currentRank, false);
             HandlePhobiaRank(phobia, calculatedRank);
+        }
+
+        // Removes phobias once the max courage is met
+        private void ConquerPhobia(PhobiaID phobia)
+        {
+            SetID set = PhobiaData.Definitions[phobia].set;
+
+            while (playerPhobiaData[phobia].activeDebuffs.Count > 0)
+            {
+                RemovePhobiaDebuff(phobia, playerPhobiaData[phobia].currentRank);
+                if (playerPhobiaData[phobia].currentRank > 1)
+                    playerPhobiaData[phobia].currentRank--;
+                else
+                    break;
+            }
+
+            playerPhobiaData[phobia].fearPoints = 0;
+            playerPhobiaData[phobia].couragePoints = 0;
+            playerPhobiaData[phobia].hasPhobia = false;
+            playerPhobiaData[phobia].isBurden = false;
+            playerPhobiaData[phobia].currentRank = 1;
+            playerPhobiaData[phobia].activeDebuffs.Clear();
+            unlockedPhobias.Remove(phobia);
+
+            RecalculateSetRank(set);
+
+            Main.NewText($"{phobia} has been conquered!", Color.Green);
         }
 
         // Helper method that removes fear from phobias
@@ -1309,6 +1491,18 @@ namespace ReignOfFear.Content.Systems.FearSystem
             foreach (var kvp in PhobiaData.Definitions)
             {
                 if (kvp.Value.set == setID && playerPhobiaData[kvp.Key].hasPhobia)
+                    count++;
+            }
+            return count;
+        }
+
+        // Returns how many phobias the player has in total
+        public int GetTotalPhobiaCount()
+        {
+            int count = 0;
+            foreach (PhobiaID phobia in Enum.GetValues<PhobiaID>())
+            {
+                if (playerPhobiaData[phobia].hasPhobia)
                     count++;
             }
             return count;

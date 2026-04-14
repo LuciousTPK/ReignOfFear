@@ -73,10 +73,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
             if (Main.masterMode) diffMult = 2.67f;
             else if (Main.expertMode) diffMult = 1.45f;
 
-            int totalPhobias = 0;
-            foreach (PhobiaID phobia in Enum.GetValues<PhobiaID>())
-                if (modPlayer.HasPhobia(phobia))
-                    totalPhobias++;
+            int totalPhobias = modPlayer.GetTotalPhobiaCount();
 
             int bestRank = 0;
             foreach (SetID setID in candidateSets)
