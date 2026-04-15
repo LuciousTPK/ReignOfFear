@@ -27,10 +27,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
         private static void ApplySetPassiveBonus(NPC npc)
         {
             if (!PhobiaData.NPCPhobiaMap.TryGetValue(npc.type, out List<PhobiaID> phobias))
-            {
-                Main.NewText($"[SetDebug] {npc.FullName} has no phobia mapping — skipping", Color.Gray);
                 return;
-            }
 
             Player player = null;
 
@@ -67,63 +64,44 @@ namespace ReignOfFear.Content.Systems.FearSystem
                     candidateSets.Add(def.set);
             }
 
-            Main.NewText($"[SetDebug] {npc.FullName} spawned for {player.name} | Candidate sets: {string.Join(", ", candidateSets)}", Color.Yellow);
-
-            float diffMult = 1f;
-            if (Main.masterMode) diffMult = 2.67f;
-            else if (Main.expertMode) diffMult = 1.45f;
-
             int totalPhobias = modPlayer.GetTotalPhobiaCount();
 
             int bestRank = 0;
             foreach (SetID setID in candidateSets)
             {
                 int rank = modPlayer.GetSetRank(setID);
-                Main.NewText($"[SetDebug]   {setID} rank = {rank}", Color.Yellow);
                 if (rank > bestRank)
                     bestRank = rank;
             }
 
-            Main.NewText($"[SetDebug] Best rank: {bestRank} | Total phobias: {totalPhobias} | diffMult: {diffMult}", Color.Yellow);
-
             if (bestRank <= 0)
-            {
-                Main.NewText($"[SetDebug] No active set ranks — no bonus applied", Color.Gray);
                 return;
-            }
 
             bool isBoss = npc.boss || NPCID.Sets.BossHeadTextures[npc.type] >= 0;
-            int baseLife = npc.lifeMax;
-            int baseDamage = npc.damage;
 
             if (isBoss)
             {
-                float hpBonus = Math.Min(bestRank * 0.016f * diffMult * totalPhobias, 1.5f);
-                float damageBonus = Math.Min(bestRank * 0.031f * diffMult * totalPhobias, 3.0f);
+                float hpBonus = Math.Min(bestRank * 0.014f * totalPhobias, 0.5f);
+                float damageBonus = Math.Min(bestRank * 0.028f * totalPhobias, 1.0f);
+                float defenseBonus = Math.Min(bestRank * 0.014f * totalPhobias, 0.25f);
 
                 npc.lifeMax = (int)(npc.lifeMax * (1f + hpBonus));
                 npc.life = npc.lifeMax;
                 npc.damage = (int)(npc.damage * (1f + damageBonus));
-
-                Main.NewText($"[SetDebug] BOSS {npc.FullName} | HP: {baseLife} → {npc.lifeMax} (+{hpBonus:P0}) | Dmg: {baseDamage} → {npc.damage} (+{damageBonus:P0})", Color.Red);
+                npc.defense = (int)(npc.defense * (1f + defenseBonus));
             }
             else
             {
-                float hpBonus = Math.Min(bestRank * 0.031f * diffMult * totalPhobias, 3.0f);
-                float damageBonus = Math.Min(bestRank * 0.031f * diffMult * totalPhobias, 3.0f);
-                float defenseBonus = Math.Min(bestRank * 0.031f * diffMult * totalPhobias, 3.0f);
-                float kbBonus = Math.Min(bestRank * 0.010f * diffMult * totalPhobias, 1.0f);
-
-                int baseDefense = npc.defense;
-                float baseKB = npc.knockBackResist;
+                float hpBonus = Math.Min(bestRank * 0.014f * totalPhobias, 0.5f);
+                float damageBonus = Math.Min(bestRank * 0.028f * totalPhobias, 1.0f);
+                float defenseBonus = Math.Min(bestRank * 0.007f * totalPhobias, 0.25f);
+                float kbBonus = bestRank * 0.04f;
 
                 npc.lifeMax = (int)(npc.lifeMax * (1f + hpBonus));
                 npc.life = npc.lifeMax;
                 npc.damage = (int)(npc.damage * (1f + damageBonus));
                 npc.defense = (int)(npc.defense * (1f + defenseBonus));
                 npc.knockBackResist = Math.Min(1f, npc.knockBackResist + kbBonus);
-
-                Main.NewText($"[SetDebug] {npc.FullName} | HP: {baseLife} → {npc.lifeMax} | Dmg: {baseDamage} → {npc.damage} | Def: {baseDefense} → {npc.defense} | KB: {baseKB:F2} → {npc.knockBackResist:F2}", Color.Green);
             }
         }
 

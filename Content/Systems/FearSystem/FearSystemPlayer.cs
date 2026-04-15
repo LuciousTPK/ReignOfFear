@@ -393,10 +393,6 @@ namespace ReignOfFear.Content.Systems.FearSystem
         // Currently used to add damage amplifiers depending on the player phobia state
         public override void ModifyHurt(ref Player.HurtModifiers modifiers)
         {
-            float diffMult = 1f;
-            if (Main.masterMode) diffMult = 2.67f;
-            else if (Main.expertMode) diffMult = 1.45f;
-
             int totalPhobias = GetTotalPhobiaCount();
 
             int afflictionsRank = GetSetRank(SetID.Afflictions);
@@ -415,21 +411,18 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 if (hasAnyMappedDebuff)
                 {
                     float damageAmp = Math.Min(
-                        afflictionsRank * 0.010f * diffMult * totalPhobias, 1.0f);
+                        afflictionsRank * 0.007f * totalPhobias, 0.25f);
                     modifiers.IncomingDamageMultiplier *= (1f + damageAmp);
                 }
             }
 
+            bool atSurface = Player.ZoneOverworldHeight || Player.ZoneSkyHeight;
             int natureRank = GetSetRank(SetID.Nature);
-            if (natureRank > 0)
+            if (natureRank > 0 && atSurface)
             {
-                bool atSurface = Player.ZoneOverworldHeight || Player.ZoneSkyHeight;
-                if (atSurface)
-                {
-                    float damageAmp = Math.Min(
-                        natureRank * 0.010f * diffMult * totalPhobias, 1.0f);
-                    modifiers.IncomingDamageMultiplier *= (1f + damageAmp);
-                }
+                float damageAmp = Math.Min(
+                    natureRank * 0.007f * totalPhobias, 0.25f);
+                modifiers.IncomingDamageMultiplier *= (1f + damageAmp);
             }
 
             int undergroundRank = GetSetRank(SetID.Underground);
@@ -443,7 +436,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 if (brightness < 0.15f)
                 {
                     float damageAmp = Math.Min(
-                        undergroundRank * 0.010f * diffMult * totalPhobias, 1.0f);
+                        undergroundRank * 0.007f * totalPhobias, 0.25f);
                     modifiers.IncomingDamageMultiplier *= (1f + damageAmp);
                 }
             }
@@ -452,7 +445,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
             if (oceanRank > 0 && Player.wet && !Player.lavaWet && !Player.honeyWet)
             {
                 float damageAmp = Math.Min(
-                    oceanRank * 0.010f * diffMult * totalPhobias, 1.0f);
+                    oceanRank * 0.007f * totalPhobias, 0.25f);
                 modifiers.IncomingDamageMultiplier *= (1f + damageAmp);
             }
 
@@ -460,7 +453,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
             if (hellRank > 0 && Player.lavaWet)
             {
                 float damageAmp = Math.Min(
-                    hellRank * 0.010f * diffMult * totalPhobias, 1.0f);
+                    hellRank * 0.007f * totalPhobias, 0.25f);
                 modifiers.IncomingDamageMultiplier *= (1f + damageAmp);
             }
         }

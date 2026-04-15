@@ -37,13 +37,9 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 int afflictionsRank = modPlayer.GetSetRank(SetID.Afflictions);
                 if (afflictionsRank > 0)
                 {
-                    float diffMult = 1f;
-                    if (Main.masterMode) diffMult = 2.67f;
-                    else if (Main.expertMode) diffMult = 1.45f;
-
                     int totalPhobias = modPlayer.GetTotalPhobiaCount();
                     float extensionMultiplier = Math.Min(
-                        afflictionsRank * 0.015f * diffMult * totalPhobias, 1.5f);
+                        afflictionsRank * 0.021f * totalPhobias, 0.75f);
 
                     time = (int)(time * (1f + extensionMultiplier));
                 }
