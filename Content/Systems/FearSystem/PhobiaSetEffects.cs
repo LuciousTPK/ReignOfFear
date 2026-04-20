@@ -24,7 +24,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
         public const float KB_CAP_NONBOSS = 0.15f;
 
         public const float HP_CAP_BOSS = 0.30f;
-        public const float DMG_CAP_BOSS = 0.80f;
+        public const float DMG_CAP_BOSS = 1.00f;
         public const float DEF_CAP_BOSS = 0.20f;
 
         public const float CONTEXTUAL_FRACTION = 0.30f;
@@ -74,7 +74,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
             }
 
             float progression = GetProgression(totalPhobias);
-            bool isBoss = npc.boss || NPCID.Sets.BossHeadTextures[npc.type] >= 0;
+            bool isBoss = IsBoss(npc);
 
             if (bestRank > 0)
             {
@@ -151,6 +151,21 @@ namespace ReignOfFear.Content.Systems.FearSystem
             Color c = Lighting.GetColor(tx, ty);
             float brightness = (c.R + c.G + c.B) / (3f * 255f);
             return brightness < DARKNESS_THRESHOLD;
+        }
+
+        private static bool IsBoss(NPC npc)
+        {
+            if (npc.boss) return true;
+            if (NPCID.Sets.BossHeadTextures[npc.type] >= 0) return true;
+
+            if (SegmentedBossData.IsEaterType(npc.type)) return true;
+            if (SegmentedBossData.IsBrainType(npc.type)) return true;
+            if (SegmentedBossData.IsTwinType(npc.type)) return true;
+            if (SegmentedBossData.IsPlanteraType(npc.type)) return true;
+            if (SegmentedBossData.IsGolemType(npc.type)) return true;
+            if (SegmentedBossData.UsesAIGrouping(npc.type, out _)) return true;
+
+            return false;
         }
 
         public static void Log(string msg)

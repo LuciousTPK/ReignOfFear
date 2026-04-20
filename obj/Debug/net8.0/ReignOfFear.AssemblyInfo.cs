@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ReignOfFear")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+dd3700cd8fdd1c6b7342fb6e071e576418d2e1fb")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e791de0c10b1f1acd2739ab3e7b0e198f8e73578")]
 [assembly: System.Reflection.AssemblyProductAttribute("ReignOfFear")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ReignOfFear")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
