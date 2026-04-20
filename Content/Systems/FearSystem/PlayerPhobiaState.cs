@@ -9,7 +9,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
     /// by the player/mod
     /// 
     /// It includes the current fear/courage value, if the player has it,
-    /// if they are immune to it, if its a burden, active debuffs, and
+    /// if they are immune to it, if its a burden, active effects, and
     /// the current rank of the phobia
     /// </summary>
 
@@ -21,6 +21,6 @@ namespace ReignOfFear.Content.Systems.FearSystem
         public bool isImmune;
         public bool isBurden;
         public int currentRank = 1;
-        public List<PhobiaDebuff> activeDebuffs = new List<PhobiaDebuff>();
+        public List<PhobiaEffectData> activeEffects = new List<PhobiaEffectData>();
     }
 }

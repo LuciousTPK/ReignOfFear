@@ -106,7 +106,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
     /// saving and loading data for those phobias
     /// detecting when players should receive fear
     /// adding said fear and courage if the logic in FearGlobalNPC goes off
-    /// and some helper methods regarding phobia ranks/debuffs
+    /// and some helper methods regarding phobia ranks/effects
     /// </summary>
 
     internal class FearSystemPlayer : ModPlayer
@@ -227,17 +227,17 @@ namespace ReignOfFear.Content.Systems.FearSystem
                 {
                     for (int rank = 2; rank <= Math.Min(state.currentRank, 3); rank++)
                     {
-                        PhobiaDebuff debuff = SelectDebuff(phobia, rank);
-                        if (debuff != null)
-                            state.activeDebuffs.Add(debuff);
+                        PhobiaEffectData effect = SelectEffect(phobia, rank);
+                        if (effect != null)
+                            state.activeEffects.Add(effect);
                     }
                 }
 
-                if (state.isBurden && !state.activeDebuffs.Any(d => d.rank == 4))
+                if (state.isBurden && !state.activeEffects.Any(d => d.rank == 4))
                 {
-                    PhobiaDebuff debuff = SelectDebuff(phobia, 4);
-                    if (debuff != null)
-                        state.activeDebuffs.Add(debuff);
+                    PhobiaEffectData effect = SelectEffect(phobia, 4);
+                    if (effect != null)
+                        state.activeEffects.Add(effect);
                 }
             }
 
@@ -390,72 +390,35 @@ namespace ReignOfFear.Content.Systems.FearSystem
             bonusMultiplier = 0f;
         }
 
-        // Currently used to add damage amplifiers depending on the player phobia state
         public override void ModifyHurt(ref Player.HurtModifiers modifiers)
         {
-            int totalPhobias = GetTotalPhobiaCount();
+            NPC sourceNPC = null;
 
-            int afflictionsRank = GetSetRank(SetID.Afflictions);
-            if (afflictionsRank > 0)
+            if (modifiers.DamageSource.SourceNPCIndex >= 0 && modifiers.DamageSource.SourceNPCIndex < Main.maxNPCs)
             {
-                bool hasAnyMappedDebuff = false;
-                foreach (var kvp in PhobiaData.DebuffPhobiaMap)
+                NPC npc = Main.npc[modifiers.DamageSource.SourceNPCIndex];
+                if (npc.active) sourceNPC = npc;
+            }
+            else if (modifiers.DamageSource.SourceProjectileLocalIndex >= 0
+                  && modifiers.DamageSource.SourceProjectileLocalIndex < Main.maxProjectiles)
+            {
+                Projectile proj = Main.projectile[modifiers.DamageSource.SourceProjectileLocalIndex];
+                if (proj.active)
                 {
-                    if (Player.HasBuff(kvp.Key))
+                    var gp = proj.GetGlobalProjectile<FearGlobalProjectile>();
+                    if (gp != null && gp.sourceNPCIndex >= 0 && gp.sourceNPCIndex < Main.maxNPCs)
                     {
-                        hasAnyMappedDebuff = true;
-                        break;
+                        NPC npc = Main.npc[gp.sourceNPCIndex];
+                        if (npc.active) sourceNPC = npc;
                     }
                 }
-
-                if (hasAnyMappedDebuff)
-                {
-                    float damageAmp = Math.Min(
-                        afflictionsRank * 0.007f * totalPhobias, 0.25f);
-                    modifiers.IncomingDamageMultiplier *= (1f + damageAmp);
-                }
             }
 
-            bool atSurface = Player.ZoneOverworldHeight || Player.ZoneSkyHeight;
-            int natureRank = GetSetRank(SetID.Nature);
-            if (natureRank > 0 && atSurface)
-            {
-                float damageAmp = Math.Min(
-                    natureRank * 0.007f * totalPhobias, 0.25f);
-                modifiers.IncomingDamageMultiplier *= (1f + damageAmp);
-            }
+            if (sourceNPC == null) return;
 
-            int undergroundRank = GetSetRank(SetID.Underground);
-            if (undergroundRank > 0)
-            {
-                int tileX = (int)(Player.Center.X / 16f);
-                int tileY = (int)(Player.Center.Y / 16f);
-                Color lightColor = Lighting.GetColor(tileX, tileY);
-                float brightness = (lightColor.R + lightColor.G + lightColor.B) / (255f * 3f);
-
-                if (brightness < 0.15f)
-                {
-                    float damageAmp = Math.Min(
-                        undergroundRank * 0.007f * totalPhobias, 0.25f);
-                    modifiers.IncomingDamageMultiplier *= (1f + damageAmp);
-                }
-            }
-
-            int oceanRank = GetSetRank(SetID.Ocean);
-            if (oceanRank > 0 && Player.wet && !Player.lavaWet && !Player.honeyWet)
-            {
-                float damageAmp = Math.Min(
-                    oceanRank * 0.007f * totalPhobias, 0.25f);
-                modifiers.IncomingDamageMultiplier *= (1f + damageAmp);
-            }
-
-            int hellRank = GetSetRank(SetID.Hell);
-            if (hellRank > 0 && Player.lavaWet)
-            {
-                float damageAmp = Math.Min(
-                    hellRank * 0.007f * totalPhobias, 0.25f);
-                modifiers.IncomingDamageMultiplier *= (1f + damageAmp);
-            }
+            PhobiaSetEffects.Bonus b = PhobiaSetEffects.ComputeEnemyBonus(sourceNPC, Player);
+            if (b.dmg > 0f)
+                modifiers.FinalDamage *= 1f + b.dmg;
         }
 
         // Similar concept to the 'OnHurt' method, but we clear combat data and apply a flat 33% fear progression for applicable phobias
@@ -1068,9 +1031,9 @@ namespace ReignOfFear.Content.Systems.FearSystem
         {
             SetID set = PhobiaData.Definitions[phobia].set;
 
-            while (playerPhobiaData[phobia].activeDebuffs.Count > 0)
+            while (playerPhobiaData[phobia].activeEffects.Count > 0)
             {
-                RemovePhobiaDebuff(phobia, playerPhobiaData[phobia].currentRank);
+                RemovePhobiaEffect(phobia, playerPhobiaData[phobia].currentRank);
                 if (playerPhobiaData[phobia].currentRank > 1)
                     playerPhobiaData[phobia].currentRank--;
                 else
@@ -1082,7 +1045,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
             playerPhobiaData[phobia].hasPhobia = false;
             playerPhobiaData[phobia].isBurden = false;
             playerPhobiaData[phobia].currentRank = 1;
-            playerPhobiaData[phobia].activeDebuffs.Clear();
+            playerPhobiaData[phobia].activeEffects.Clear();
             unlockedPhobias.Remove(phobia);
 
             RecalculateSetRank(set);
@@ -1216,18 +1179,18 @@ namespace ReignOfFear.Content.Systems.FearSystem
             return playerPhobiaData[phobia].hasPhobia;
         }
 
-        // Helper method that returns if the player has a specific debuff
-        public bool HasDebuff(PhobiaID phobia, PhobiaDebuff.PhobiaDebuffID debuffID)
+        // Helper method that returns if the player has a specific effect
+        public bool HasEffect(PhobiaID phobia, PhobiaEffectData.PhobiaEffectID effectID)
         {
             if (!playerPhobiaData[phobia].hasPhobia) return false;
-            return playerPhobiaData[phobia].activeDebuffs.Any(d => d.id == debuffID);
+            return playerPhobiaData[phobia].activeEffects.Any(d => d.id == effectID);
         }
 
-        // Helper method that determines if there is an active debuff at any specific phobia rank
-        public bool HasDebuffAtRank(PhobiaID phobia, int rank)
+        // Helper method that determines if there is an active effect at any specific phobia rank
+        public bool HasEffectAtRank(PhobiaID phobia, int rank)
         {
             if (!playerPhobiaData[phobia].hasPhobia) return false;
-            return playerPhobiaData[phobia].activeDebuffs.Any(d => d.rank == rank);
+            return playerPhobiaData[phobia].activeEffects.Any(d => d.rank == rank);
         }
 
         /// <summary>
@@ -1378,7 +1341,7 @@ namespace ReignOfFear.Content.Systems.FearSystem
             }
         }
 
-        // This method takes a target rank and increase/decreases the current rank to match it, taking into account debuffs that need to be added/removed along the way
+        // This method takes a target rank and increase/decreases the current rank to match it, taking into account effects that need to be added/removed along the way
         public void HandlePhobiaRank(PhobiaID phobia, int calculatedRank)
         {
             if (playerPhobiaData[phobia].currentRank == calculatedRank)
@@ -1395,60 +1358,60 @@ namespace ReignOfFear.Content.Systems.FearSystem
                     if (playerPhobiaData[phobia].currentRank == 4)
                     {
                         playerPhobiaData[phobia].isBurden = true;
-                        AddPhobiaDebuff(phobia, playerPhobiaData[phobia].currentRank);
+                        AddPhobiaEffect(phobia, playerPhobiaData[phobia].currentRank);
                         break;
                     }
 
-                    AddPhobiaDebuff(phobia, playerPhobiaData[phobia].currentRank);
+                    AddPhobiaEffect(phobia, playerPhobiaData[phobia].currentRank);
                 }
             }
             else
             {
                 while (playerPhobiaData[phobia].currentRank != calculatedRank)
                 {
-                    RemovePhobiaDebuff(phobia, playerPhobiaData[phobia].currentRank);
+                    RemovePhobiaEffect(phobia, playerPhobiaData[phobia].currentRank);
                     playerPhobiaData[phobia].currentRank--;
                 }
             }
         }
 
-        // Helper method that adds a debuff depending on phobia rank
-        private void AddPhobiaDebuff(PhobiaID phobia, int rank)
+        // Helper method that adds a effect depending on phobia rank
+        private void AddPhobiaEffect(PhobiaID phobia, int rank)
         {
-            PhobiaDebuff debuff = SelectDebuff(phobia, rank);
-            if (debuff == null) return;
-            playerPhobiaData[phobia].activeDebuffs.Add(debuff);
+            PhobiaEffectData effect = SelectEffect(phobia, rank);
+            if (effect == null) return;
+            playerPhobiaData[phobia].activeEffects.Add(effect);
         }
 
-        // This method randomly selects a phobia debuff depending on the phobia and rank
-        public static PhobiaDebuff SelectDebuff(PhobiaID phobia, int rank)
+        // This method randomly selects a phobia effect depending on the phobia and rank
+        public static PhobiaEffectData SelectEffect(PhobiaID phobia, int rank)
         {
             PhobiaData.Definitions.TryGetValue(phobia, out PhobiaDefinition definition);
             PhobiaDefinition.PhobiaType phobiaType = definition.type;
 
-            List<PhobiaDebuff> typeList = PhobiaDebuffData.typeDebuffs.ContainsKey(phobiaType)
-                ? PhobiaDebuffData.typeDebuffs[phobiaType]
-                : new List<PhobiaDebuff>();
+            List<PhobiaEffectData> typeList = PhobiaEffectMap.typeEffects.ContainsKey(phobiaType)
+                ? PhobiaEffectMap.typeEffects[phobiaType]
+                : new List<PhobiaEffectData>();
 
-            List<PhobiaDebuff> phobiaSpecificList = PhobiaDebuffData.phobiaSpecificDebuffs.ContainsKey(phobia)
-                ? PhobiaDebuffData.phobiaSpecificDebuffs[phobia]
-                : new List<PhobiaDebuff>();
+            List<PhobiaEffectData> phobiaSpecificList = PhobiaEffectMap.phobiaSpecificEffects.ContainsKey(phobia)
+                ? PhobiaEffectMap.phobiaSpecificEffects[phobia]
+                : new List<PhobiaEffectData>();
 
-            List<PhobiaDebuff> typeFiltered = typeList.Where(d => d.rank == rank).ToList();
-            List<PhobiaDebuff> phobiaSpecificFiltered = phobiaSpecificList.Where(d => d.rank == rank).ToList();
+            List<PhobiaEffectData> typeFiltered = typeList.Where(d => d.rank == rank).ToList();
+            List<PhobiaEffectData> phobiaSpecificFiltered = phobiaSpecificList.Where(d => d.rank == rank).ToList();
 
-            List<PhobiaDebuff> combinedList = typeFiltered.Concat(phobiaSpecificFiltered).ToList();
+            List<PhobiaEffectData> combinedList = typeFiltered.Concat(phobiaSpecificFiltered).ToList();
 
             if (combinedList.Count == 0) return null;
 
             return combinedList[Random.Shared.Next(0, combinedList.Count)];
         }
 
-        // Helper method that remove a debuff depending on phobia rank
-        private void RemovePhobiaDebuff(PhobiaID phobia, int rank)
+        // Helper method that remove a effect depending on phobia rank
+        private void RemovePhobiaEffect(PhobiaID phobia, int rank)
         {
-            PhobiaDebuff debuff = playerPhobiaData[phobia].activeDebuffs.FirstOrDefault(activeDebuff => activeDebuff.rank == rank);
-            playerPhobiaData[phobia].activeDebuffs.Remove(debuff);
+            PhobiaEffectData effect = playerPhobiaData[phobia].activeEffects.FirstOrDefault(activeEffect => activeEffect.rank == rank);
+            playerPhobiaData[phobia].activeEffects.Remove(effect);
         }
 
         // Calculates the rank of a set when a phobia is obtained

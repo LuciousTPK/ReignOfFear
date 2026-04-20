@@ -8,7 +8,7 @@ namespace ReignOfFear.Content.Commands
     /// <summary>
     /// Dev command for spawning multiple enemies on the same frame
     /// Mostly used for testing the combat tracker, but is also handy for testing
-    /// phobia debuffs, external NPC tracking logic, or possible IL edits in the future
+    /// phobia effects, external NPC tracking logic, or possible IL edits in the future
     /// </summary>
 
     public class SpawnMultipleCommand : ModCommand
