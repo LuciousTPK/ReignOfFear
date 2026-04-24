@@ -24,14 +24,20 @@ namespace ReignOfFear.Content.Commands
         {
             var player = caller.Player.GetModPlayer<FearSystemPlayer>();
 
-            if (args.Length > 0 && args[0] == "show" && args[1] == "phobias")
+            if (args.Length > 1 && args[0] == "show" && args[1] == "phobias")
             {
+                int phobiaCount = 0;
                 foreach (PhobiaID phobiaName in Enum.GetValues<PhobiaID>())
                 {
                     if (player.HasPhobia(phobiaName))
                     {
                         caller.Reply(phobiaName.ToString(), Color.Yellow);
+                        phobiaCount++;
                     }
+                }
+                if (phobiaCount <= 0)
+                {
+                    caller.Reply($"{caller.Player.name} currently has no phobias.");
                 }
 
                 return;
